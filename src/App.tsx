@@ -23,6 +23,69 @@ import { NewComplaintModal } from './components/admin/NewComplaintModal';
 import { InvoiceModal } from './components/invoice/InvoiceModal';
 import { Shield, Lock } from 'lucide-react';
 
+/**
+ * Route resolution helper for clean URL paths (/repair, /track-complaint, etc.)
+ */
+const getTabFromPath = (path: string, search: string): { tab: string; param?: string } => {
+  const cleanPath = path.toLowerCase().replace(/\/$/, '');
+  const searchParams = new URLSearchParams(search);
+  const tabQuery = searchParams.get('tab');
+  const idQuery = searchParams.get('id');
+
+  if (tabQuery) {
+    return { tab: tabQuery, param: idQuery || undefined };
+  }
+
+  if (cleanPath === '/repair' || cleanPath === '/book-repair') {
+    return { tab: 'book-repair' };
+  }
+  if (cleanPath === '/track-complaint' || cleanPath === '/track') {
+    return { tab: 'track-complaint', param: idQuery || undefined };
+  }
+  if (cleanPath === '/contact') {
+    return { tab: 'contact' };
+  }
+  if (cleanPath === '/admin' || cleanPath === '/admin-dashboard') {
+    return { tab: 'admin-dashboard' };
+  }
+  if (cleanPath === '/admin-complaints') {
+    return { tab: 'admin-complaints' };
+  }
+  if (cleanPath === '/admin-analytics') {
+    return { tab: 'admin-analytics' };
+  }
+  if (cleanPath === '/admin-settings') {
+    return { tab: 'admin-settings' };
+  }
+
+  return { tab: 'home' };
+};
+
+/**
+ * Convert tab key into clean URL path
+ */
+const getPathFromTab = (tab: string, param?: string): string => {
+  switch (tab) {
+    case 'book-repair':
+      return '/repair';
+    case 'track-complaint':
+      return param ? `/track-complaint?id=${param}` : '/track-complaint';
+    case 'contact':
+      return '/contact';
+    case 'admin-dashboard':
+      return '/admin';
+    case 'admin-complaints':
+      return '/admin-complaints';
+    case 'admin-analytics':
+      return '/admin-analytics';
+    case 'admin-settings':
+      return '/admin-settings';
+    case 'home':
+    default:
+      return '/';
+  }
+};
+
 export function App() {
   const [complaints, setComplaints] = useState<Complaint[]>(getComplaints());
   const [settings, setSettings] = useState<BusinessSettings>(getSettings());
@@ -32,13 +95,27 @@ export function App() {
     email: 'guest@washingmachinecare.shop'
   });
 
-  const [currentTab, setCurrentTab] = useState<string>('home');
-  const [trackParamId, setTrackParamId] = useState<string>('');
+  // Initialize route state from current browser URL
+  const initialRoute = getTabFromPath(window.location.pathname, window.location.search);
+  const [currentTab, setCurrentTab] = useState<string>(initialRoute.tab);
+  const [trackParamId, setTrackParamId] = useState<string>(initialRoute.param || '');
 
   // Active Modals
   const [selectedComplaintDetail, setSelectedComplaintDetail] = useState<Complaint | null>(null);
   const [selectedInvoiceComplaint, setSelectedInvoiceComplaint] = useState<Complaint | null>(null);
   const [showNewComplaintModal, setShowNewComplaintModal] = useState<boolean>(false);
+
+  // Handle browser Back / Forward navigation button clicks
+  useEffect(() => {
+    const handlePopState = () => {
+      const route = getTabFromPath(window.location.pathname, window.location.search);
+      setCurrentTab(route.tab);
+      if (route.param) setTrackParamId(route.param);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Sync state from local storage & Firebase real-time
   const reloadData = () => {
@@ -64,6 +141,13 @@ export function App() {
   const handleNavigate = (tab: string, param?: string) => {
     setCurrentTab(tab);
     if (param) setTrackParamId(param);
+
+    // Push clean path to browser address bar
+    const newPath = getPathFromTab(tab, param);
+    if (window.location.pathname + window.location.search !== newPath) {
+      window.history.pushState(null, '', newPath);
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
