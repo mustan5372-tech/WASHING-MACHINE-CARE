@@ -16,7 +16,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   onSuccess,
   targetRole
 }) => {
-  const [mobile, setMobile] = useState('9238728746');
+  const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -123,6 +123,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 placeholder="10-digit mobile number"
                 value={mobile}
                 onChange={(e) => setMobile(e.target.value)}
+                autoComplete="off"
                 required
                 style={{
                   width: '100%',
@@ -149,6 +150,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="off"
                 required
                 style={{
                   width: '100%',
