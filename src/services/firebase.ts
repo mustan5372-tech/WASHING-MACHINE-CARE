@@ -18,15 +18,16 @@ import {
 } from 'firebase/auth';
 import type { Complaint } from '../types';
 
-// Replace with your Firebase Web App configuration from Firebase Console:
-// https://console.firebase.google.com/
+// Live Firebase Web App configuration from your Firebase Console project:
+// Project: washing-machine-care-727eb
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDemoConfigKeyForWashingMachineCare",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "washing-machine-care.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "washing-machine-care",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "washing-machine-care.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "123456789012",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:123456789012:web:demo"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyD4BW_siJnlXbWmN7IdP-0kUy7rQeD0A80",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "washing-machine-care-727eb.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "washing-machine-care-727eb",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "washing-machine-care-727eb.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1044563908801",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1044563908801:web:3988bf9fa8de27f7a29c40",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-7X6JN0J8T7"
 };
 
 // Initialize Firebase App & Services
