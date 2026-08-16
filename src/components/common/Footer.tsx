@@ -1,6 +1,6 @@
 import React from 'react';
 import type { BusinessSettings } from '../../types';
-import { Phone, Clock, MapPin, Shield, CheckCircle, Code } from 'lucide-react';
+import { Phone, Clock, MapPin, Shield, CheckCircle, Code, ExternalLink, Sparkles } from 'lucide-react';
 
 interface FooterProps {
   settings: BusinessSettings;
@@ -11,9 +11,9 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
   const primaryPhone = "+91 9826247802";
 
   return (
-    <footer style={{ backgroundColor: '#0f172a', color: '#f8fafc', paddingTop: '3rem', paddingBottom: '2rem', borderTop: '1px solid #1e293b' }}>
+    <footer style={{ backgroundColor: '#0f172a', color: '#f8fafc', paddingTop: '3.5rem', paddingBottom: '2.5rem', borderTop: '1px solid #1e293b' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2.5rem', marginBottom: '2.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2.5rem', marginBottom: '3rem' }}>
           
           {/* Brand Info with Logo */}
           <div>
@@ -21,13 +21,13 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
               <img 
                 src="/logo.png" 
                 alt="Washing Machine Care Logo" 
-                style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
+                style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
               />
-              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff' }}>
+              <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ffffff' }}>
                 {settings.businessName}
               </span>
             </div>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '1.25rem', lineHeight: '1.6' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.925rem', marginBottom: '1.25rem', lineHeight: '1.6' }}>
               Professional home door-step repair & servicing for all washing machine brands. Fast, transparent & guaranteed 30-day service warranty.
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600 }}>
@@ -38,7 +38,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
           {/* Quick Actions */}
           <div>
             <h4 style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>Quick Actions</h4>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
               <li>
                 <button onClick={() => onNavigate('book-repair')} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: 0 }}>
                   🔧 Book a Repair Request
@@ -55,7 +55,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigate('admin-dashboard')} style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <button onClick={() => onNavigate('admin-dashboard')} style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}>
                   <Shield size={14} /> Shop Owner / Admin Login
                 </button>
               </li>
@@ -91,50 +91,78 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
 
         </div>
 
-        {/* Website Developer Section */}
+        {/* Catchy & Premium Website Developer Banner */}
         <div 
           style={{ 
-            backgroundColor: '#1e293b', 
-            borderRadius: '16px', 
-            padding: '1.25rem 1.5rem', 
-            marginBottom: '2rem',
+            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', 
+            borderRadius: '20px', 
+            padding: '1.75rem 2rem', 
+            marginBottom: '2.5rem',
             border: '1px solid #334155',
+            boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '1.25rem'
+            gap: '1.5rem'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <img 
-              src="/profile.jpg" 
-              alt="Mustansir Murtaza Sanawadwala" 
-              style={{ 
-                width: '56px', 
-                height: '56px', 
-                borderRadius: '50%', 
-                objectFit: 'cover', 
-                border: '2px solid #3b82f6',
-                boxShadow: '0 0 12px rgba(59, 130, 246, 0.4)'
-              }}
-            />
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                <Code size={14} /> Website Developer
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div style={{ position: 'relative' }}>
+              <img 
+                src="/profile.jpg" 
+                alt="Mustansir Murtaza Sanawadwala" 
+                style={{ 
+                  width: '72px', 
+                  height: '72px', 
+                  borderRadius: '50%', 
+                  objectFit: 'cover', 
+                  border: '3px solid #3b82f6',
+                  boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)'
+                }}
+              />
+              <div style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: '#2563eb', color: '#ffffff', padding: '3px', borderRadius: '50%', border: '2px solid #0f172a' }}>
+                <Sparkles size={12} />
               </div>
-              <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', margin: '0.15rem 0 0.1rem 0' }}>
+            </div>
+
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 800, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.08em', backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid rgba(59, 130, 246, 0.3)', marginBottom: '0.4rem' }}>
+                <Code size={13} /> Lead Full-Stack Web Developer
+              </div>
+              
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '-0.01em' }}>
                 Mustansir Murtaza Sanawadwala
-              </h4>
-              <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0 }}>
-                Designed & Developed by Mustansir Murtaza Sanawadwala.
+              </h3>
+
+              <p style={{ fontSize: '0.9rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>
+                Designed & Built with modern web performance, real-time Firebase & cloud hosting.
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', padding: '0.5rem 1rem', borderRadius: '999px', border: '1px solid #334155', fontSize: '0.8rem', color: '#cbd5e1', fontWeight: 600 }}>
-            ✨ Official Developer Credit
-          </div>
+          {/* Portfolio Website Link Button */}
+          <a 
+            href="https://mustansir.vercel.app/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ 
+              backgroundColor: '#2563eb', 
+              color: '#ffffff', 
+              fontWeight: 800, 
+              fontSize: '0.95rem',
+              padding: '0.75rem 1.4rem', 
+              borderRadius: '12px', 
+              textDecoration: 'none', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.5rem',
+              boxShadow: '0 4px 15px rgba(37, 99, 235, 0.4)',
+              transition: 'transform 0.2s ease, background-color 0.2s ease'
+            }}
+          >
+            Visit Developer Portfolio <ExternalLink size={16} />
+          </a>
         </div>
 
         <div style={{ borderTop: '1px solid #1e293b', paddingTop: '1.5rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', fontSize: '0.85rem', color: '#64748b' }}>
