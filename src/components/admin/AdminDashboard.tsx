@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import type { Complaint, BusinessSettings } from '../../types';
 import { exportComplaintsToCsv } from '../../utils/exportCsv';
 import { StatusBadge } from '../common/StatusBadge';
+import { AddAdminModal } from './AddAdminModal';
 import { 
   AlertCircle, Wrench, CheckCircle2, Clock, 
-  Plus, Search, Download, UserCheck 
+  Plus, Search, Download, UserCheck, UserPlus, Trash2 
 } from 'lucide-react';
+import { deleteComplaintFromFirebase } from '../../services/firebase';
+import { deleteComplaintLocal, addAuditLog } from '../../services/storage';
 
 interface AdminDashboardProps {
   complaints: Complaint[];
@@ -25,6 +28,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [isAddAdminOpen, setIsAddAdminOpen] = useState<boolean>(false);
 
   // Calculate Metrics
   const newCount = complaints.filter(c => c.status === 'New Complaint').length;
@@ -46,6 +50,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return matchesSearch && matchesStatus;
   });
 
+  const handleDeleteComplaint = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (window.confirm(`Are you sure you want to delete complaint ${id}? It will be permanently removed from all admin screens and customer tracking.`)) {
+      await deleteComplaintFromFirebase(id);
+      deleteComplaintLocal(id);
+      addAuditLog('Admin', 'DELETE_COMPLAINT', `Deleted complaint ${id}`);
+    }
+  };
+
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
@@ -64,6 +77,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           <button onClick={onOpenNewComplaintModal} className="btn btn-primary" style={{ backgroundColor: '#1d4ed8' }}>
             <Plus size={18} /> + New Complaint
+          </button>
+
+          <button onClick={() => setIsAddAdminOpen(true)} className="btn btn-secondary" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+            <UserPlus size={18} /> Add Admin Account
           </button>
 
           <button onClick={() => onNavigate('admin-complaints')} className="btn btn-secondary">
@@ -164,7 +181,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               All Service Complaints ({filteredComplaints.length})
             </h2>
             <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
-              Click any complaint row to view details, update status, or issue invoice.
+              Click any complaint row to view details, update status, issue invoice, or delete.
             </p>
           </div>
 
@@ -218,7 +235,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <th style={{ padding: '0.75rem 1rem', color: '#475569' }}>Address</th>
                   <th style={{ padding: '0.75rem 1rem', color: '#475569' }}>Appliance & Problem</th>
                   <th style={{ padding: '0.75rem 1rem', color: '#475569' }}>Status</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#475569' }}>Action</th>
+                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#475569' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -254,15 +271,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </td>
 
                     <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenComplaintDetail(c);
-                        }}
-                        className="btn btn-sm btn-secondary"
-                      >
-                        Manage
-                      </button>
+                      <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenComplaintDetail(c);
+                          }}
+                          className="btn btn-sm btn-secondary"
+                        >
+                          Manage
+                        </button>
+                        <button 
+                          onClick={(e) => handleDeleteComplaint(e, c.id)}
+                          className="btn btn-sm"
+                          style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', padding: '0.25rem 0.5rem' }}
+                          title="Delete Complaint"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -272,6 +299,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )}
 
       </div>
+
+      {/* Add Admin Account Modal */}
+      <AddAdminModal 
+        isOpen={isAddAdminOpen}
+        onClose={() => setIsAddAdminOpen(false)}
+      />
     </div>
   );
 };

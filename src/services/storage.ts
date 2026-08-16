@@ -36,6 +36,11 @@ export const saveComplaint = (complaint: Complaint): void => {
   saveComplaintToFirebase(complaint);
 };
 
+export const deleteComplaintLocal = (id: string): void => {
+  const complaints = getComplaints().filter(c => c.id.toLowerCase() !== id.toLowerCase());
+  localStorage.setItem(KEYS.COMPLAINTS, JSON.stringify(complaints));
+};
+
 export const getComplaintById = (id: string): Complaint | undefined => {
   const complaints = getComplaints();
   return complaints.find(c => c.id.toLowerCase() === id.toLowerCase());

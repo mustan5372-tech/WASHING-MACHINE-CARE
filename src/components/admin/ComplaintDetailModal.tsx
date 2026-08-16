@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import type { Complaint, ComplaintStatus, BusinessSettings } from '../../types';
-import { saveComplaint, addAuditLog } from '../../services/storage';
+import { saveComplaint, addAuditLog, deleteComplaintLocal } from '../../services/storage';
+import { deleteComplaintFromFirebase } from '../../services/firebase';
 import { StatusBadge } from '../common/StatusBadge';
 import { buildWhatsAppUrl, createCustomerWhatsAppMessage } from '../../utils/whatsapp';
 import { 
   X, User, Wrench, MessageSquare, 
-  FileText, Send 
+  FileText, Send, Trash2 
 } from 'lucide-react';
 
 interface ComplaintDetailModalProps {
@@ -94,6 +95,16 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
     setInternalNoteInput('');
   };
 
+  // Delete Complaint Action
+  const handleDeleteComplaint = async () => {
+    if (window.confirm(`Are you sure you want to permanently delete complaint ${currentComplaint.id}? It will be removed from all admin dashboards and customer tracking.`)) {
+      await deleteComplaintFromFirebase(currentComplaint.id);
+      deleteComplaintLocal(currentComplaint.id);
+      addAuditLog('Admin', 'DELETE_COMPLAINT', `Deleted complaint ${currentComplaint.id}`);
+      onClose();
+    }
+  };
+
   // WhatsApp click-to-chat links
   const customerWhatsAppLink = buildWhatsAppUrl(
     currentComplaint.customer.whatsapp || currentComplaint.customer.mobile,
@@ -119,6 +130,15 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <button onClick={() => onOpenInvoice(currentComplaint)} className="btn btn-outline-primary btn-sm">
               <FileText size={16} /> View Invoice
+            </button>
+
+            <button 
+              onClick={handleDeleteComplaint}
+              className="btn btn-sm"
+              style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              title="Delete Complaint"
+            >
+              <Trash2 size={16} /> Delete
             </button>
 
             <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
