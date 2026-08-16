@@ -1,6 +1,6 @@
 import React from 'react';
 import type { BusinessSettings } from '../../types';
-import { Phone, Clock, MapPin, Shield, CheckCircle } from 'lucide-react';
+import { Phone, Clock, MapPin, Shield, CheckCircle, Code } from 'lucide-react';
 
 interface FooterProps {
   settings: BusinessSettings;
@@ -89,6 +89,52 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
             </div>
           </div>
 
+        </div>
+
+        {/* Website Developer Section */}
+        <div 
+          style={{ 
+            backgroundColor: '#1e293b', 
+            borderRadius: '16px', 
+            padding: '1.25rem 1.5rem', 
+            marginBottom: '2rem',
+            border: '1px solid #334155',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1.25rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <img 
+              src="/profile.jpg" 
+              alt="Mustansir Murtaza Sanawadwala" 
+              style={{ 
+                width: '56px', 
+                height: '56px', 
+                borderRadius: '50%', 
+                objectFit: 'cover', 
+                border: '2px solid #3b82f6',
+                boxShadow: '0 0 12px rgba(59, 130, 246, 0.4)'
+              }}
+            />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <Code size={14} /> Website Developer
+              </div>
+              <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', margin: '0.15rem 0 0.1rem 0' }}>
+                Mustansir Murtaza Sanawadwala
+              </h4>
+              <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0 }}>
+                Designed & Developed by Mustansir Murtaza Sanawadwala.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', padding: '0.5rem 1rem', borderRadius: '999px', border: '1px solid #334155', fontSize: '0.8rem', color: '#cbd5e1', fontWeight: 600 }}>
+            ✨ Official Developer Credit
+          </div>
         </div>
 
         <div style={{ borderTop: '1px solid #1e293b', paddingTop: '1.5rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', fontSize: '0.85rem', color: '#64748b' }}>
