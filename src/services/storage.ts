@@ -1,5 +1,6 @@
 import type { Complaint, BusinessSettings, AuditLog } from '../types';
 import { INITIAL_COMPLAINTS, INITIAL_SETTINGS, INITIAL_AUDIT_LOGS } from '../data/mockData';
+import { saveComplaintToFirebase } from './firebase';
 
 const KEYS = {
   COMPLAINTS: 'wmc_complaints_v1',
@@ -32,6 +33,7 @@ export const saveComplaint = (complaint: Complaint): void => {
     complaints.unshift(complaint);
   }
   localStorage.setItem(KEYS.COMPLAINTS, JSON.stringify(complaints));
+  saveComplaintToFirebase(complaint);
 };
 
 export const getComplaintById = (id: string): Complaint | undefined => {

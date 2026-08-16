@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { UserSession } from '../../types';
-import { Menu, X, Shield, User, Phone, Search, PlusCircle } from 'lucide-react';
+import { Menu, X, Shield, User, Phone, Search, PlusCircle, LogOut } from 'lucide-react';
+import { AdminLoginModal } from '../admin/AdminLoginModal';
 
 interface HeaderProps {
   currentTab: string;
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+  const [loginModalTarget, setLoginModalTarget] = useState<'admin' | 'staff' | null>(null);
 
   const handleNavClick = (tab: string) => {
     onNavigate(tab);
@@ -27,15 +29,14 @@ export const Header: React.FC<HeaderProps> = ({
     if (role === 'customer') {
       onSessionChange({ role: 'customer', name: 'Customer Guest', email: 'guest@washingmachinecare.shop' });
       onNavigate('home');
-    } else if (role === 'admin') {
-      onSessionChange({ role: 'admin', name: 'Owner / Admin', email: 'admin@washingmachinecare.shop' });
-      onNavigate('admin-dashboard');
-    } else if (role === 'staff') {
-      onSessionChange({ role: 'staff', name: 'Service Staff', email: 'staff@washingmachinecare.shop' });
-      onNavigate('admin-dashboard');
+      setRoleDropdownOpen(false);
+      setMobileMenuOpen(false);
+    } else {
+      // If switching to admin/staff, trigger security PIN modal
+      setLoginModalTarget(role);
+      setRoleDropdownOpen(false);
+      setMobileMenuOpen(false);
     }
-    setRoleDropdownOpen(false);
-    setMobileMenuOpen(false);
   };
 
   return (
@@ -139,26 +140,38 @@ export const Header: React.FC<HeaderProps> = ({
             {roleDropdownOpen && (
               <div 
                 style={{ 
-                  position: 'absolute', right: 0, top: '110%', width: '200px', backgroundColor: '#ffffff', 
+                  position: 'absolute', right: 0, top: '110%', width: '210px', backgroundColor: '#ffffff', 
                   borderRadius: '10px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', 
                   border: '1px solid #e2e8f0', padding: '0.5rem', zIndex: 200 
                 }}
               >
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', padding: '0.35rem 0.6rem', textTransform: 'uppercase' }}>
-                  Switch Portal View
+                  Portal Access
                 </div>
-                <button 
-                  onClick={() => handleRoleSelect('customer')} 
-                  style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.6rem', borderRadius: '6px', border: 'none', background: session.role === 'customer' ? '#eff6ff' : 'transparent', fontWeight: session.role === 'customer' ? 700 : 500, color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                  <User size={14} style={{ color: '#16a34a' }} /> Customer Portal
-                </button>
-                <button 
-                  onClick={() => handleRoleSelect('admin')} 
-                  style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.6rem', borderRadius: '6px', border: 'none', background: session.role === 'admin' ? '#eff6ff' : 'transparent', fontWeight: session.role === 'admin' ? 700 : 500, color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                  <Shield size={14} style={{ color: '#1d4ed8' }} /> Admin Dashboard
-                </button>
+                
+                {session.role !== 'customer' ? (
+                  <button 
+                    onClick={() => handleRoleSelect('customer')} 
+                    style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.6rem', borderRadius: '6px', border: 'none', background: '#fef2f2', fontWeight: 600, color: '#dc2626', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}
+                  >
+                    <LogOut size={14} /> Exit Admin / Sign Out
+                  </button>
+                ) : (
+                  <>
+                    <button 
+                      onClick={() => handleRoleSelect('customer')} 
+                      style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.6rem', borderRadius: '6px', border: 'none', background: '#eff6ff', fontWeight: 700, color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                      <User size={14} style={{ color: '#16a34a' }} /> Public Customer View
+                    </button>
+                    <button 
+                      onClick={() => handleRoleSelect('admin')} 
+                      style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.6rem', borderRadius: '6px', border: 'none', background: 'transparent', fontWeight: 500, color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                      <Shield size={14} style={{ color: '#1d4ed8' }} /> Admin Portal 🔒
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -195,13 +208,32 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem' }}>SWITCH PORTAL:</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              <button onClick={() => handleRoleSelect('customer')} className="btn btn-sm btn-secondary">Customer</button>
-              <button onClick={() => handleRoleSelect('admin')} className="btn btn-sm btn-primary">Admin</button>
-            </div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem' }}>PORTAL ACCESS:</div>
+            {session.role !== 'customer' ? (
+              <button onClick={() => handleRoleSelect('customer')} className="btn btn-sm btn-secondary btn-block" style={{ color: '#dc2626' }}>
+                <LogOut size={14} /> Exit Admin / Sign Out
+              </button>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <button onClick={() => handleRoleSelect('customer')} className="btn btn-sm btn-secondary">Customer</button>
+                <button onClick={() => handleRoleSelect('admin')} className="btn btn-sm btn-primary">Admin 🔒</button>
+              </div>
+            )}
           </div>
         </div>
+      )}
+
+      {/* Security PIN Authentication Modal */}
+      {loginModalTarget && (
+        <AdminLoginModal 
+          isOpen={true}
+          targetRole={loginModalTarget}
+          onClose={() => setLoginModalTarget(null)}
+          onSuccess={(newSession) => {
+            onSessionChange(newSession);
+            onNavigate('admin-dashboard');
+          }}
+        />
       )}
 
       {/* Inline style responsive overrides */}

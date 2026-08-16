@@ -4,6 +4,7 @@ import {
   getComplaints, 
   getSettings, addAuditLog 
 } from './services/storage';
+import { listenToComplaints } from './services/firebase';
 
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
@@ -20,6 +21,7 @@ import { AdminSettings } from './components/admin/AdminSettings';
 import { NewComplaintModal } from './components/admin/NewComplaintModal';
 
 import { InvoiceModal } from './components/invoice/InvoiceModal';
+import { Shield, Lock } from 'lucide-react';
 
 export function App() {
   const [complaints, setComplaints] = useState<Complaint[]>(getComplaints());
@@ -38,7 +40,7 @@ export function App() {
   const [selectedInvoiceComplaint, setSelectedInvoiceComplaint] = useState<Complaint | null>(null);
   const [showNewComplaintModal, setShowNewComplaintModal] = useState<boolean>(false);
 
-  // Sync state from storage
+  // Sync state from local storage & Firebase real-time
   const reloadData = () => {
     setComplaints(getComplaints());
     setSettings(getSettings());
@@ -46,6 +48,17 @@ export function App() {
 
   useEffect(() => {
     reloadData();
+
+    // Subscribe to Firebase Cloud Firestore updates
+    const unsubscribe = listenToComplaints((remoteComplaints) => {
+      if (remoteComplaints && remoteComplaints.length > 0) {
+        setComplaints(remoteComplaints);
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [currentTab]);
 
   const handleNavigate = (tab: string, param?: string) => {
@@ -58,6 +71,9 @@ export function App() {
     setSessionState(newSession);
     addAuditLog(newSession.name, 'SWITCH_ROLE', `Switched role to ${newSession.role}`);
   };
+
+  // Helper check for admin authorization
+  const isAdminOrStaff = session.role === 'admin' || session.role === 'staff';
 
   return (
     <div className="app-container">
@@ -103,28 +119,49 @@ export function App() {
           />
         )}
 
-        {/* ADMIN PORTAL VIEWS */}
-        {(currentTab === 'admin-dashboard' || currentTab === 'admin-complaints') && (
-          <AdminDashboard 
-            complaints={complaints}
-            settings={settings}
-            onOpenComplaintDetail={(c) => setSelectedComplaintDetail(c)}
-            onOpenNewComplaintModal={() => setShowNewComplaintModal(true)}
-            onNavigate={handleNavigate}
-          />
-        )}
+        {/* ADMIN PORTAL VIEWS (Restricted to Authorized Admin/Staff Sessions Only) */}
+        {(currentTab === 'admin-dashboard' || currentTab === 'admin-complaints' || currentTab === 'admin-analytics' || currentTab === 'admin-settings') && !isAdminOrStaff ? (
+          <div style={{ maxWidth: '600px', margin: '4rem auto', textAlign: 'center', padding: '2.5rem', backgroundColor: '#ffffff', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#fef2f2', border: '2px solid #fca5a5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+              <Lock size={32} style={{ color: '#dc2626' }} />
+            </div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>Admin Portal Restricted</h2>
+            <p style={{ color: '#64748b', margin: '0.75rem 0 1.5rem 0' }}>
+              This section contains sensitive customer data, service revenue, and financial reports. Access is restricted to authorized admin accounts.
+            </p>
+            <button 
+              onClick={() => handleNavigate('home')} 
+              className="btn btn-primary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Shield size={16} /> Return to Home
+            </button>
+          </div>
+        ) : (
+          <>
+            {(currentTab === 'admin-dashboard' || currentTab === 'admin-complaints') && (
+              <AdminDashboard 
+                complaints={complaints}
+                settings={settings}
+                onOpenComplaintDetail={(c) => setSelectedComplaintDetail(c)}
+                onOpenNewComplaintModal={() => setShowNewComplaintModal(true)}
+                onNavigate={handleNavigate}
+              />
+            )}
 
-        {currentTab === 'admin-analytics' && (
-          <AdminAnalytics 
-            complaints={complaints}
-          />
-        )}
+            {currentTab === 'admin-analytics' && (
+              <AdminAnalytics 
+                complaints={complaints}
+              />
+            )}
 
-        {currentTab === 'admin-settings' && (
-          <AdminSettings 
-            settings={settings}
-            onUpdateSettings={(newSet) => setSettings(newSet)}
-          />
+            {currentTab === 'admin-settings' && (
+              <AdminSettings 
+                settings={settings}
+                onUpdateSettings={(newSet) => setSettings(newSet)}
+              />
+            )}
+          </>
         )}
 
       </main>
@@ -138,7 +175,7 @@ export function App() {
       {/* MODALS */}
 
       {/* Complaint Detail Modal */}
-      {selectedComplaintDetail && (
+      {selectedComplaintDetail && isAdminOrStaff && (
         <ComplaintDetailModal 
           complaint={selectedComplaintDetail}
           settings={settings}
@@ -163,7 +200,7 @@ export function App() {
       )}
 
       {/* Admin New Complaint Modal */}
-      {showNewComplaintModal && (
+      {showNewComplaintModal && isAdminOrStaff && (
         <NewComplaintModal 
           settings={settings}
           onClose={() => setShowNewComplaintModal(false)}
