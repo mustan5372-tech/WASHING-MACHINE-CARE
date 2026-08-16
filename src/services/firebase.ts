@@ -4,10 +4,18 @@ import {
   collection, 
   doc, 
   setDoc, 
+  deleteDoc,
   onSnapshot,
   query,
   orderBy 
 } from 'firebase/firestore';
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  type User 
+} from 'firebase/auth';
 import type { Complaint } from '../types';
 
 // Replace with your Firebase Web App configuration from Firebase Console:
@@ -21,24 +29,10 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:123456789012:web:demo"
 };
 
-// Initialize Firebase
+// Initialize Firebase App & Services
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const db = getFirestore(app);
-
-/**
- * Upload local complaints to Cloud Firestore
- */
-export const syncComplaintsToFirebase = async (complaints: Complaint[]): Promise<boolean> => {
-  try {
-    for (const c of complaints) {
-      await setDoc(doc(db, 'complaints', c.id), c, { merge: true });
-    }
-    return true;
-  } catch (err) {
-    console.warn('Firebase sync warning (offline or demo credentials):', err);
-    return false;
-  }
-};
+export const auth = getAuth(app);
 
 /**
  * Real-time listener for Firestore Complaints
@@ -51,11 +45,9 @@ export const listenToComplaints = (onUpdate: (complaints: Complaint[]) => void) 
       snapshot.forEach((docSnap) => {
         list.push(docSnap.data() as Complaint);
       });
-      if (list.length > 0) {
-        onUpdate(list);
-      }
+      onUpdate(list);
     }, (err) => {
-      console.warn('Firestore snapshot error:', err);
+      console.warn('Firestore snapshot listener warning:', err);
     });
   } catch (err) {
     console.warn('Could not initialize Firebase listener:', err);
@@ -64,32 +56,54 @@ export const listenToComplaints = (onUpdate: (complaints: Complaint[]) => void) 
 };
 
 /**
- * Save single complaint to Firebase
+ * Save / Update single complaint in Firebase Cloud Firestore
  */
 export const saveComplaintToFirebase = async (complaint: Complaint): Promise<void> => {
   try {
     await setDoc(doc(db, 'complaints', complaint.id), complaint, { merge: true });
   } catch (err) {
-    console.warn('Could not save to Firebase, falling back to LocalStorage:', err);
+    console.warn('Could not save to Firebase, stored in LocalStorage:', err);
   }
 };
 
 /**
- * Firestore Security Rules documentation for Admin Security:
- * 
- * rules_version = '2';
- * service cloud.firestore {
- *   match /databases/{database}/documents {
- *     // General public can create complaints (Book Repair) and read status by ID
- *     match /complaints/{complaintId} {
- *       allow create: if true;
- *       allow read: if request.auth != null || true; // Public can track complaint
- *       allow update, delete: if request.auth != null; // Only authenticated admins can modify
- *     }
- *     // Settings & Financial Analytics are restricted to authenticated Admins only
- *     match /settings/{docId} {
- *       allow read, write: if request.auth != null;
- *     }
- *   }
- * }
+ * Delete a complaint from Firebase Cloud Firestore
  */
+export const deleteComplaintFromFirebase = async (complaintId: string): Promise<void> => {
+  try {
+    await deleteDoc(doc(db, 'complaints', complaintId));
+  } catch (err) {
+    console.warn('Could not delete from Firebase:', err);
+  }
+};
+
+/**
+ * Firebase Authentication: Sign in Admin / Staff account
+ */
+export const loginAdminWithFirebase = async (email: string, pass: string): Promise<User | null> => {
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email, pass);
+    return cred.user;
+  } catch (err) {
+    console.warn('Firebase auth failed, checking local pin fallback:', err);
+    return null;
+  }
+};
+
+/**
+ * Sign out Firebase user
+ */
+export const signOutFirebaseUser = async (): Promise<void> => {
+  try {
+    await firebaseSignOut(auth);
+  } catch (err) {
+    console.warn('Error signing out Firebase user:', err);
+  }
+};
+
+/**
+ * Subscribe to Firebase Auth state changes
+ */
+export const subscribeToAuthChanges = (onUserChange: (user: User | null) => void) => {
+  return onAuthStateChanged(auth, onUserChange);
+};

@@ -102,6 +102,13 @@ export const addAuditLog = (user: string, action: string, details: string): void
   localStorage.setItem(KEYS.AUDIT_LOGS, JSON.stringify(logs.slice(0, 200)));
 };
 
+export const clearAllData = (): void => {
+  localStorage.removeItem(KEYS.COMPLAINTS);
+  localStorage.removeItem(KEYS.AUDIT_LOGS);
+  localStorage.removeItem(KEYS.COUNTER);
+  window.location.reload();
+};
+
 export const resetToDemoData = (): void => {
   localStorage.clear();
   window.location.reload();
