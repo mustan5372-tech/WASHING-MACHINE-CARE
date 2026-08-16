@@ -1,7 +1,6 @@
 import React from 'react';
 import type { BusinessSettings } from '../../types';
-import { Phone, MessageSquare, Clock, MapPin, Send } from 'lucide-react';
-import { buildWhatsAppUrl } from '../../utils/whatsapp';
+import { Phone, Clock, MapPin, Send } from 'lucide-react';
 
 interface ContactPageProps {
   settings: BusinessSettings;
@@ -9,6 +8,8 @@ interface ContactPageProps {
 }
 
 export const ContactPage: React.FC<ContactPageProps> = ({ settings }) => {
+  const primaryPhone = "+91 9826247802";
+
   return (
     <div className="animate-fade-in" style={{ maxWidth: '900px', margin: '0 auto' }}>
       
@@ -26,39 +27,35 @@ export const ContactPage: React.FC<ContactPageProps> = ({ settings }) => {
         {/* Direct Contact Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
+          {/* Primary Helpline Card */}
           <div className="card" style={{ borderLeft: '4px solid #1d4ed8' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Phone size={20} style={{ color: '#1d4ed8' }} />
               </div>
               <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>PHONE HELPLINE</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>{settings.phone}</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>HELPLINE 1</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>{primaryPhone}</div>
               </div>
             </div>
-            <a href={`tel:${settings.phone}`} className="btn btn-primary btn-block btn-sm" style={{ marginTop: '0.75rem' }}>
-              <Phone size={16} /> Call Now
+            <a href={`tel:${primaryPhone.replace(/\s+/g, '')}`} className="btn btn-primary btn-block btn-sm" style={{ marginTop: '0.75rem' }}>
+              <Phone size={16} /> Call {primaryPhone}
             </a>
           </div>
 
-          <div className="card" style={{ borderLeft: '4px solid #16a34a' }}>
+          {/* Secondary Helpline Card */}
+          <div className="card" style={{ borderLeft: '4px solid #059669' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <MessageSquare size={20} style={{ color: '#16a34a' }} />
+                <Phone size={20} style={{ color: '#059669' }} />
               </div>
               <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>WHATSAPP SERVICE</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>Instant Response</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>HELPLINE 2</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>Direct Support</div>
               </div>
             </div>
-            <a 
-              href={buildWhatsAppUrl(settings.whatsapp, 'Hello Washing Machine Care, I have a service inquiry.')}
-              target="_blank"
-              rel="noreferrer" 
-              className="btn btn-success btn-block btn-sm" 
-              style={{ marginTop: '0.75rem' }}
-            >
-              WhatsApp Us
+            <a href={`tel:${primaryPhone.replace(/\s+/g, '')}`} className="btn btn-success btn-block btn-sm" style={{ marginTop: '0.75rem' }}>
+              <Phone size={16} /> Call Helpline 2
             </a>
           </div>
 

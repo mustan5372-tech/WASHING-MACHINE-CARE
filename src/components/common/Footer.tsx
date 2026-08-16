@@ -1,7 +1,6 @@
 import React from 'react';
 import type { BusinessSettings } from '../../types';
-import { Phone, MessageSquare, Clock, MapPin, Shield, CheckCircle } from 'lucide-react';
-import { buildWhatsAppUrl } from '../../utils/whatsapp';
+import { Phone, Clock, MapPin, Shield, CheckCircle } from 'lucide-react';
 
 interface FooterProps {
   settings: BusinessSettings;
@@ -9,6 +8,8 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
+  const primaryPhone = "+91 9826247802";
+
   return (
     <footer style={{ backgroundColor: '#0f172a', color: '#f8fafc', paddingTop: '3rem', paddingBottom: '2rem', borderTop: '1px solid #1e293b' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1rem' }}>
@@ -63,21 +64,18 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
 
           {/* Contact Information */}
           <div>
-            <h4 style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>Contact & Service</h4>
+            <h4 style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>Call Helplines</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <Phone size={16} style={{ color: '#60a5fa' }} />
-                <span>{settings.phone}</span>
+                <a href={`tel:${primaryPhone.replace(/\s+/g, '')}`} style={{ color: '#ffffff', fontWeight: 700, textDecoration: 'none' }}>
+                  {primaryPhone}
+                </a>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <MessageSquare size={16} style={{ color: '#22c55e' }} />
-                <a 
-                  href={buildWhatsAppUrl(settings.whatsapp, 'Hello Washing Machine Care, I need repair service.')}
-                  target="_blank" 
-                  rel="noreferrer"
-                  style={{ color: '#22c55e', textDecoration: 'underline' }}
-                >
-                  WhatsApp Support
+                <Phone size={16} style={{ color: '#22c55e' }} />
+                <a href={`tel:${primaryPhone.replace(/\s+/g, '')}`} style={{ color: '#22c55e', fontWeight: 700, textDecoration: 'none' }}>
+                  Direct Helpline 2
                 </a>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>

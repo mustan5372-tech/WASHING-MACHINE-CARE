@@ -4,14 +4,13 @@ import {
   Wrench, ShieldCheck, Clock, Phone, Search, 
   ArrowRight, Award, ThumbsUp, Zap 
 } from 'lucide-react';
-import { buildWhatsAppUrl } from '../../utils/whatsapp';
 
 interface CustomerHomeProps {
   settings: BusinessSettings;
   onNavigate: (tab: string) => void;
 }
 
-export const CustomerHome: React.FC<CustomerHomeProps> = ({ settings, onNavigate }) => {
+export const CustomerHome: React.FC<CustomerHomeProps> = ({ onNavigate }) => {
   const brands = ['LG', 'Samsung', 'Whirlpool', 'IFB', 'Bosch', 'Haier', 'Godrej', 'Panasonic', 'Videocon'];
 
   const problems = [
@@ -22,6 +21,8 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ settings, onNavigate
     { name: 'Water Leakage', desc: 'Water leaking from bottom or door seal' },
     { name: 'Error Code', desc: 'Display panel showing error code (OE, 4E, etc.)' }
   ];
+
+  const primaryPhone = "+91 9826247802";
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
@@ -84,7 +85,7 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ settings, onNavigate
           </div>
         </div>
 
-        {/* Hero Visual Illustration with Brand Logo */}
+        {/* Direct Call Helplines Card */}
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <div 
             style={{ 
@@ -92,9 +93,9 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ settings, onNavigate
               maxWidth: '380px', 
               backgroundColor: '#ffffff', 
               borderRadius: '24px', 
-              padding: '2rem', 
+              padding: '2rem 1.5rem', 
               border: '2px solid #e2e8f0',
-              boxShadow: 'var(--shadow-md)', 
+              boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.08)', 
               textAlign: 'center',
               display: 'flex',
               flexDirection: 'column',
@@ -112,23 +113,32 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ settings, onNavigate
             </div>
 
             <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.35rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
                 Need Immediate Help?
               </h3>
-              <p style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                Talk directly with our repair technicians on WhatsApp
+              <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0 }}>
+                Call our repair technicians directly for instant assistance
               </p>
             </div>
 
-            <a 
-              href={buildWhatsAppUrl(settings.whatsapp, 'Hello Washing Machine Care, I have an issue with my washing machine.')}
-              target="_blank" 
-              rel="noreferrer"
-              className="btn btn-success btn-block"
-              style={{ borderRadius: '12px' }}
-            >
-              <Phone size={18} /> Call / WhatsApp Support
-            </a>
+            {/* Direct Calling Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', width: '100%' }}>
+              <a 
+                href={`tel:${primaryPhone.replace(/\s+/g, '')}`}
+                className="btn btn-success btn-block btn-lg"
+                style={{ borderRadius: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                <Phone size={18} /> Call {primaryPhone}
+              </a>
+
+              <a 
+                href={`tel:${primaryPhone.replace(/\s+/g, '')}`}
+                className="btn btn-secondary btn-block"
+                style={{ borderRadius: '12px', fontWeight: 700, backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                <Phone size={16} style={{ color: '#2563eb' }} /> Call Helpline 2
+              </a>
+            </div>
           </div>
         </div>
       </section>
