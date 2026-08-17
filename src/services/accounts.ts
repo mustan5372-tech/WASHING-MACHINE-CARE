@@ -11,6 +11,7 @@ export interface AdminAccount {
 }
 
 const STORAGE_KEY = 'wmc_admin_accounts_v1';
+const SESSION_KEY = 'wmc_active_user_session_v1';
 
 // Initial Registered Accounts
 const INITIAL_ADMINS: AdminAccount[] = [
@@ -42,6 +43,48 @@ const INITIAL_ADMINS: AdminAccount[] = [
     createdAt: '2026-08-17T09:34:00Z'
   }
 ];
+
+/**
+ * Restore active user session from localStorage (stay logged in permanently)
+ */
+export const getSavedUserSession = (): UserSession => {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (raw) {
+      const parsed: UserSession = JSON.parse(raw);
+      if (parsed && (parsed.role === 'admin' || parsed.role === 'staff' || parsed.role === 'customer')) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Error loading saved user session:', e);
+  }
+  return {
+    role: 'customer',
+    name: 'Customer Guest',
+    email: 'guest@washingmachinecare.shop'
+  };
+};
+
+/**
+ * Persist active user session to localStorage
+ */
+export const saveUserSession = (session: UserSession) => {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  } catch (e) {
+    console.error('Error saving user session:', e);
+  }
+};
+
+/**
+ * Clear user session (sign out)
+ */
+export const clearUserSession = () => {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch (e) {}
+};
 
 /**
  * Get all registered admin & staff accounts
@@ -101,11 +144,13 @@ export const authenticateAdminAccount = (mobileOrEmail: string, pass: string): U
   });
 
   if (matched) {
-    return {
+    const session: UserSession = {
       role: matched.role,
       name: matched.name,
       email: matched.email || matched.mobile
     };
+    saveUserSession(session);
+    return session;
   }
 
   return null;

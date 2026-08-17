@@ -306,7 +306,7 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({ settings, onNaviga
               rel="noreferrer" 
               className="btn btn-success btn-block"
             >
-              WhatsApp Us
+              WhatsApp Service Team 📲
             </a>
           </div>
         </div>

@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Complaint, BusinessSettings, UserSession } from './types';
 import { 
   getComplaints, 
   getSettings, addAuditLog 
 } from './services/storage';
 import { listenToComplaints } from './services/firebase';
+import { getSavedUserSession, saveUserSession, clearUserSession } from './services/accounts';
 
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
@@ -21,7 +22,7 @@ import { AdminSettings } from './components/admin/AdminSettings';
 import { NewComplaintModal } from './components/admin/NewComplaintModal';
 
 import { InvoiceModal } from './components/invoice/InvoiceModal';
-import { Shield, Lock } from 'lucide-react';
+import { Shield, Lock, Bell } from 'lucide-react';
 
 /**
  * Route resolution helper for clean URL paths (/repair, /track-complaint, etc.)
@@ -86,14 +87,42 @@ const getPathFromTab = (tab: string, param?: string): string => {
   }
 };
 
+/**
+ * Play a web notification audio chime
+ */
+const playNotificationChime = () => {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.6);
+  } catch (e) {
+    // Audio Context restricted before user interaction
+  }
+};
+
 export function App() {
   const [complaints, setComplaints] = useState<Complaint[]>(getComplaints());
   const [settings, setSettings] = useState<BusinessSettings>(getSettings());
-  const [session, setSessionState] = useState<UserSession>({
-    role: 'customer',
-    name: 'Customer Guest',
-    email: 'guest@washingmachinecare.shop'
-  });
+  
+  // Persistent session state (restores logged in Admin/Staff session automatically)
+  const [session, setSessionState] = useState<UserSession>(getSavedUserSession());
+
+  // Notification Permission State
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
+    'Notification' in window ? Notification.permission : 'denied'
+  );
+
+  // Track known complaint count to trigger new booking alerts
+  const knownComplaintCountRef = useRef<number>(complaints.length);
 
   // Initialize route state from current browser URL
   const initialRoute = getTabFromPath(window.location.pathname, window.location.search);
@@ -117,6 +146,15 @@ export function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Request browser Notification permission
+  const requestNotificationAccess = () => {
+    if ('Notification' in window) {
+      Notification.requestPermission().then((perm) => {
+        setNotificationPermission(perm);
+      });
+    }
+  };
+
   // Sync state from local storage & Firebase real-time
   const reloadData = () => {
     setComplaints(getComplaints());
@@ -129,6 +167,20 @@ export function App() {
     // Subscribe to Firebase Cloud Firestore updates
     const unsubscribe = listenToComplaints((remoteComplaints) => {
       if (remoteComplaints && remoteComplaints.length > 0) {
+        // Trigger alert if new repair request booked
+        if (remoteComplaints.length > knownComplaintCountRef.current && (session.role === 'admin' || session.role === 'staff')) {
+          const newest = remoteComplaints[0];
+          playNotificationChime();
+
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('🚨 New Repair Request Booked!', {
+              body: `${newest.id}: ${newest.customer.name} - ${newest.machine.brand} (${newest.customer.mobile})`,
+              icon: '/logo.png',
+              tag: newest.id
+            });
+          }
+        }
+        knownComplaintCountRef.current = remoteComplaints.length;
         setComplaints(remoteComplaints);
       }
     });
@@ -136,7 +188,7 @@ export function App() {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [currentTab]);
+  }, [session.role]);
 
   const handleNavigate = (tab: string, param?: string) => {
     setCurrentTab(tab);
@@ -153,6 +205,12 @@ export function App() {
 
   const handleSessionChange = (newSession: UserSession) => {
     setSessionState(newSession);
+    if (newSession.role === 'customer') {
+      clearUserSession();
+    } else {
+      saveUserSession(newSession);
+      requestNotificationAccess();
+    }
     addAuditLog(newSession.name, 'SWITCH_ROLE', `Switched role to ${newSession.role}`);
   };
 
@@ -223,6 +281,20 @@ export function App() {
           </div>
         ) : (
           <>
+            {isAdminOrStaff && notificationPermission !== 'granted' && (
+              <div style={{ maxWidth: '1200px', margin: '1rem auto 0 auto', padding: '0 1rem' }}>
+                <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '0.85rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.9rem', color: '#1e40af', fontWeight: 600 }}>
+                    <Bell size={18} style={{ color: '#2563eb' }} />
+                    <span>Enable Admin Desktop & Mobile Push Notifications to get instant sound & screen alerts when a customer books a repair!</span>
+                  </div>
+                  <button onClick={requestNotificationAccess} className="btn btn-sm btn-primary" style={{ fontWeight: 700 }}>
+                    Enable Push Alerts 🔔
+                  </button>
+                </div>
+              </div>
+            )}
+
             {(currentTab === 'admin-dashboard' || currentTab === 'admin-complaints') && (
               <AdminDashboard 
                 complaints={complaints}
