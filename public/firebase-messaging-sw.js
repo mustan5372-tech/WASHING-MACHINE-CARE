@@ -25,12 +25,45 @@ messaging.onBackgroundMessage((payload) => {
     badge: '/logo.png',
     vibrate: [200, 100, 200, 100, 200],
     data: payload.data || {},
+    requireInteraction: true,
     actions: [
       { action: 'open_admin', title: 'Open Admin Dashboard 📱' }
     ]
   };
 
   self.registration.showNotification(title, options);
+});
+
+// Handle Push event directly for Web Push payloads
+self.addEventListener('push', (event) => {
+  let title = '🚨 New Washing Machine Repair Booking!';
+  let body = 'A new customer complaint has been submitted.';
+  let data = {};
+
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      title = payload.title || payload.notification?.title || title;
+      body = payload.body || payload.notification?.body || body;
+      data = payload.data || payload;
+    } catch (e) {
+      body = event.data.text() || body;
+    }
+  }
+
+  const options = {
+    body: body,
+    icon: '/logo.png',
+    badge: '/logo.png',
+    vibrate: [300, 100, 300, 100, 300],
+    requireInteraction: true,
+    data: data,
+    actions: [
+      { action: 'open_admin', title: 'View Booking 📱' }
+    ]
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 // Handle Notification Click Action
@@ -50,7 +83,38 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Handle Fetch for PWA Install Criteria
+// Cache configuration for offline PWA capability
+const CACHE_NAME = 'wmc-pwa-cache-v3';
+const ASSETS_TO_CACHE = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/logo.png',
+  '/favicon.svg'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
+    }).then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            return caches.delete(cache);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   event.respondWith(

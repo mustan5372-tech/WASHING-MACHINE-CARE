@@ -117,10 +117,10 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js').then(function(registration) {
-            console.log('WMC PWA Service Worker registered with scope:', registration.scope);
+          navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(registration) {
+            console.log('WMC FCM & PWA Service Worker registered with scope:', registration.scope);
           }).catch(function(err) {
-            console.warn('WMC PWA Service Worker registration failed:', err);
+            console.warn('WMC Service Worker registration failed:', err);
           });
         });
       }
