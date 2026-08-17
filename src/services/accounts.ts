@@ -12,7 +12,7 @@ export interface AdminAccount {
 
 const STORAGE_KEY = 'wmc_admin_accounts_v1';
 
-// Initial Registered Accounts (Removed test PIN accounts)
+// Initial Registered Accounts
 const INITIAL_ADMINS: AdminAccount[] = [
   {
     id: 'admin-1',
@@ -22,6 +22,15 @@ const INITIAL_ADMINS: AdminAccount[] = [
     password: 'Mustan@525',
     role: 'admin',
     createdAt: '2026-08-16T18:50:00Z'
+  },
+  {
+    id: 'admin-2',
+    name: 'Mufaddal Husaini',
+    mobile: '9926064529',
+    email: 'mufaddal@washingmachinecare.shop',
+    password: '515253',
+    role: 'admin',
+    createdAt: '2026-08-17T09:32:00Z'
   }
 ];
 
@@ -35,12 +44,19 @@ export const getAdminAccounts = (): AdminAccount[] => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_ADMINS));
       return INITIAL_ADMINS;
     }
-    const accounts: AdminAccount[] = JSON.parse(raw);
-    // Ensure primary owner Mustansir Sanawadwala always exists
-    if (!accounts.some(a => a.mobile.includes('9238728746'))) {
+    let accounts: AdminAccount[] = JSON.parse(raw);
+    
+    // Ensure primary owner Mustansir Sanawadwala exists
+    if (!accounts.some(a => normalizeMobile(a.mobile) === '9238728746')) {
       accounts.unshift(INITIAL_ADMINS[0]);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
     }
+
+    // Ensure Mufaddal Husaini exists
+    if (!accounts.some(a => normalizeMobile(a.mobile) === '9926064529')) {
+      accounts.push(INITIAL_ADMINS[1]);
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
     return accounts;
   } catch (err) {
     console.error('Error loading admin accounts:', err);
@@ -56,7 +72,7 @@ export const normalizeMobile = (num: string): string => {
 };
 
 /**
- * Authenticate Admin / Staff using Mobile Number & Password
+ * Authenticate Admin / Staff using Mobile Number & Password / PIN
  */
 export const authenticateAdminAccount = (mobileOrEmail: string, pass: string): UserSession | null => {
   const accounts = getAdminAccounts();
