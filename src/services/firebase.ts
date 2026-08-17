@@ -7,7 +7,8 @@ import {
   deleteDoc,
   onSnapshot,
   query,
-  orderBy
+  orderBy,
+  getDocs
 } from 'firebase/firestore';
 import { 
   getAuth, 
@@ -164,6 +165,67 @@ export const triggerTestPushNotification = async (): Promise<boolean> => {
 };
 
 /**
+ * Broadcast Web Push to all registered Admin FCM tokens when app/screen is closed
+ */
+export const sendFcmPushToAdmins = async (complaint: Complaint): Promise<void> => {
+  try {
+    const tokensSnap = await getDocs(collection(db, 'fcm_tokens'));
+    tokensSnap.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (data && data.token) {
+        fetch('https://fcm.googleapis.com/fcm/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            to: data.token,
+            notification: {
+              title: `🚨 New Repair Booking: ${complaint.id}`,
+              body: `${complaint.customer.name} (${complaint.customer.mobile}) - ${complaint.machine.brand} (${complaint.problem.selectedProblems.join(', ')})`,
+              icon: '/logo.png',
+              click_action: 'https://washingmachinecare.shop/admin'
+            },
+            data: {
+              complaintId: complaint.id,
+              url: '/admin'
+            }
+          })
+        }).catch(err => console.warn('FCM push send warn:', err));
+      }
+    });
+  } catch (err) {
+    console.warn('Could not query FCM tokens:', err);
+  }
+};
+
+/**
+ * Send instant Telegram lock-screen notification to Admin Telegram Channel/Bot
+ */
+export const sendTelegramAdminAlert = async (complaint: Complaint, botToken?: string, chatId?: string): Promise<void> => {
+  const token = botToken || '7891234567:AAExamplePlaceholder'; // Replaceable in Admin Settings
+  const chat = chatId || '';
+  if (!chat) return;
+
+  try {
+    const text = encodeURIComponent(
+      `🚨 *NEW REPAIR BOOKING RECEIVED!*\n\n` +
+      `📌 *Booking ID:* ${complaint.id}\n` +
+      `👤 *Customer:* ${complaint.customer.name}\n` +
+      `📞 *Mobile:* ${complaint.customer.mobile}\n` +
+      `🧺 *Machine:* ${complaint.machine.brand} (${complaint.machine.type})\n` +
+      `⚠️ *Problem:* ${complaint.problem.selectedProblems.join(', ')}\n` +
+      `📅 *Slot:* ${complaint.visit?.date || 'N/A'} (${complaint.visit?.timeSlot || 'N/A'})\n\n` +
+      `🔗 https://washingmachinecare.shop/admin`
+    );
+
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${text}&parse_mode=Markdown`);
+  } catch (err) {
+    console.warn('Telegram alert failed:', err);
+  }
+};
+
+/**
  * Save / Update single complaint in Firebase Cloud Firestore
  */
 export const saveComplaintToFirebase = async (complaint: Complaint): Promise<void> => {
@@ -176,9 +238,12 @@ export const saveComplaintToFirebase = async (complaint: Complaint): Promise<voi
       body: `${complaint.customer.name} (${complaint.customer.mobile}) - ${complaint.machine.brand} (${complaint.problem.selectedProblems.join(', ')})`,
       complaintId: complaint.id,
       createdAt: new Date().toISOString()
-    });
+    }).catch(() => {});
 
-    // Fire mobile OS notification via active service worker
+    // Broadcast FCM Web Push to registered admin devices (works when app is closed)
+    sendFcmPushToAdmins(complaint);
+
+    // Fire mobile OS notification via active service worker if tab is active
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && Notification.permission === 'granted') {
       navigator.serviceWorker.ready.then(reg => {
         reg.showNotification(`🚨 New Service Booking: ${complaint.id}`, {
