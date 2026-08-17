@@ -7,7 +7,7 @@ import {
   AlertCircle, Wrench, CheckCircle2, Clock, 
   Plus, Search, Download, UserPlus, Trash2, Bell 
 } from 'lucide-react';
-import { deleteComplaintFromFirebase, registerFcmNotifications } from '../../services/firebase';
+import { deleteComplaintFromFirebase, registerFcmNotifications, triggerTestPushNotification } from '../../services/firebase';
 import { deleteComplaintLocal, addAuditLog } from '../../services/storage';
 
 interface AdminDashboardProps {
@@ -117,6 +117,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             }}
           >
             <Bell size={16} /> {notifState === 'granted' ? 'Notifications Active 🔔' : 'Enable Push Notifications 🔔'}
+          </button>
+
+          <button 
+            onClick={() => triggerTestPushNotification()}
+            className="btn btn-secondary btn-sm"
+            style={{ backgroundColor: '#fff7ed', color: '#c2410c', border: '1px solid #ffedd5', fontWeight: 700 }}
+            title="Test Mobile Push Notification"
+          >
+            📣 Test Push Alert
           </button>
 
           <button onClick={onOpenNewComplaintModal} className="btn btn-primary" style={{ backgroundColor: '#1d4ed8' }}>

@@ -124,6 +124,46 @@ export const listenToComplaints = (onUpdate: (complaints: Complaint[]) => void) 
 };
 
 /**
+ * Trigger an instant test mobile push notification
+ */
+export const triggerTestPushNotification = async (): Promise<boolean> => {
+  if (typeof window === 'undefined' || !('Notification' in window)) {
+    alert('Push notifications are not supported on this browser.');
+    return false;
+  }
+
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') {
+    alert('Notification permission denied. Please allow notifications in your mobile browser settings.');
+    return false;
+  }
+
+  if ('serviceWorker' in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification('🚨 Mobile Push Notifications Active!', {
+        body: 'Washing Machine Care admin alerts are set up successfully on your device.',
+        icon: '/logo.png',
+        badge: '/logo.png',
+        vibrate: [300, 100, 300, 100, 300],
+        tag: 'wmc-test-notif',
+        requireInteraction: true,
+        data: { url: '/admin' }
+      } as any);
+      return true;
+    } catch (e) {
+      console.warn('Service worker showNotification fallback:', e);
+    }
+  }
+  
+  new Notification('🚨 Mobile Push Notifications Active!', {
+    body: 'Washing Machine Care admin alerts are set up successfully on your device.',
+    icon: '/logo.png'
+  });
+  return true;
+};
+
+/**
  * Save / Update single complaint in Firebase Cloud Firestore
  */
 export const saveComplaintToFirebase = async (complaint: Complaint): Promise<void> => {
@@ -137,6 +177,21 @@ export const saveComplaintToFirebase = async (complaint: Complaint): Promise<voi
       complaintId: complaint.id,
       createdAt: new Date().toISOString()
     });
+
+    // Fire mobile OS notification via active service worker
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && Notification.permission === 'granted') {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.showNotification(`🚨 New Service Booking: ${complaint.id}`, {
+          body: `${complaint.customer.name} (${complaint.customer.mobile}) - ${complaint.machine.brand}`,
+          icon: '/logo.png',
+          badge: '/logo.png',
+          vibrate: [300, 100, 300, 100, 300],
+          tag: complaint.id,
+          requireInteraction: true,
+          data: { url: '/admin' }
+        } as any);
+      }).catch(() => {});
+    }
   } catch (err) {
     console.warn('Could not save to Firebase, stored in LocalStorage:', err);
   }
