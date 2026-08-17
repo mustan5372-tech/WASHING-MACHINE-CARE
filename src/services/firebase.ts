@@ -7,7 +7,7 @@ import {
   deleteDoc,
   onSnapshot,
   query,
-  orderBy 
+  orderBy
 } from 'firebase/firestore';
 import { 
   getAuth, 
@@ -16,6 +16,7 @@ import {
   onAuthStateChanged,
   type User 
 } from 'firebase/auth';
+import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 import type { Complaint } from '../types';
 
 // Live Firebase Web App configuration from your Firebase Console project:
@@ -34,6 +35,66 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+/**
+ * Register Firebase Cloud Messaging (FCM) for Admin Web Push Notifications
+ */
+export const registerFcmNotifications = async (adminName: string): Promise<string | null> => {
+  try {
+    const supported = await isSupported();
+    if (!supported) {
+      console.warn('Firebase Messaging not supported on this browser.');
+      return null;
+    }
+
+    // Register Background Service Worker
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    console.log('Firebase Service Worker registered successfully:', registration);
+
+    const messaging = getMessaging(app);
+
+    // Request Notification Permission
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.warn('Notification permission not granted by admin.');
+      return null;
+    }
+
+    // Retrieve FCM Device Token
+    const currentToken = await getToken(messaging, {
+      serviceWorkerRegistration: registration
+    });
+
+    if (currentToken) {
+      console.log('FCM Token received:', currentToken);
+      // Save FCM Token to Firestore for broadcasting
+      await setDoc(doc(db, 'fcm_tokens', currentToken.slice(0, 30)), {
+        token: currentToken,
+        adminName,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      // Listen to Foreground Push Notifications
+      onMessage(messaging, (payload) => {
+        console.log('Foreground FCM Message received:', payload);
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(payload.notification?.title || '🚨 New Service Booking!', {
+            body: payload.notification?.body || 'A new complaint has been registered.',
+            icon: '/logo.png'
+          });
+        }
+      });
+
+      return currentToken;
+    } else {
+      console.warn('No registration token available. Request permission to generate one.');
+      return null;
+    }
+  } catch (err) {
+    console.error('An error occurred while retrieving FCM token:', err);
+    return null;
+  }
+};
 
 /**
  * Real-time listener for Firestore Complaints
@@ -62,6 +123,14 @@ export const listenToComplaints = (onUpdate: (complaints: Complaint[]) => void) 
 export const saveComplaintToFirebase = async (complaint: Complaint): Promise<void> => {
   try {
     await setDoc(doc(db, 'complaints', complaint.id), complaint, { merge: true });
+    
+    // Broadcast notification queue event in Firestore for background push dispatcher
+    await setDoc(doc(db, 'notification_queue', `notif-${Date.now()}`), {
+      title: `🚨 New Repair Booking: ${complaint.id}`,
+      body: `${complaint.customer.name} (${complaint.customer.mobile}) - ${complaint.machine.brand} (${complaint.problem.selectedProblems.join(', ')})`,
+      complaintId: complaint.id,
+      createdAt: new Date().toISOString()
+    });
   } catch (err) {
     console.warn('Could not save to Firebase, stored in LocalStorage:', err);
   }

@@ -7,7 +7,7 @@ import {
   AlertCircle, Wrench, CheckCircle2, Clock, 
   Plus, Search, Download, UserPlus, Trash2, Bell 
 } from 'lucide-react';
-import { deleteComplaintFromFirebase } from '../../services/firebase';
+import { deleteComplaintFromFirebase, registerFcmNotifications } from '../../services/firebase';
 import { deleteComplaintLocal, addAuditLog } from '../../services/storage';
 
 interface AdminDashboardProps {
@@ -35,21 +35,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setNotifState(Notification.permission);
+      if (Notification.permission === 'granted') {
+        registerFcmNotifications('Admin');
+      }
     }
   }, []);
 
-  const handleRequestNotification = () => {
+  const handleRequestNotification = async () => {
     if ('Notification' in window) {
-      Notification.requestPermission().then((permission) => {
-        setNotifState(permission);
-        if (permission === 'granted') {
-          alert('✅ Push Notifications Enabled! You will receive instant screen & sound alerts when a customer books a washing machine repair.');
-        } else if (permission === 'denied') {
-          alert('⚠️ Notifications blocked in your browser settings. Please allow notifications in your browser site settings.');
-        }
-      });
+      const permission = await Notification.requestPermission();
+      setNotifState(permission);
+      if (permission === 'granted') {
+        await registerFcmNotifications('Admin');
+        alert('✅ Firebase Cloud Messaging (FCM) Enabled! You will receive instant background push alerts when a customer books a washing machine repair.');
+      } else if (permission === 'denied') {
+        alert('⚠️ Notifications blocked in your browser settings. Please allow notifications in your browser site settings.');
+      }
     } else {
-      alert('Browser does not support desktop notifications.');
+      alert('Browser does not support desktop push notifications.');
     }
   };
 
