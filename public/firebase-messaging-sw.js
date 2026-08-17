@@ -1,4 +1,4 @@
-// Firebase Cloud Messaging Background Service Worker
+// Firebase Cloud Messaging Background Service Worker & PWA Handler
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
 
@@ -47,5 +47,13 @@ self.addEventListener('notificationclick', (event) => {
         return clients.openWindow('/admin');
       }
     })
+  );
+});
+
+// Handle Fetch for PWA Install Criteria
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
