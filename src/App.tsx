@@ -185,6 +185,12 @@ export function App() {
       setNewBookingToast(complaint);
       playNotificationChime();
 
+      if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate([500, 200, 500, 200, 1000]);
+        } catch (e) {}
+      }
+
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.ready.then(reg => {
@@ -218,6 +224,18 @@ export function App() {
         triggerMobileNotification(customEvent.detail);
       }
     };
+
+    // Unlock audio context on initial mobile gesture
+    const unlockAudio = () => {
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
+      } catch (e) {}
+    };
+    window.addEventListener('touchstart', unlockAudio, { once: true });
+    window.addEventListener('click', unlockAudio, { once: true });
 
     window.addEventListener('visibilitychange', handleAppFocus);
     window.addEventListener('focus', handleAppFocus);
@@ -290,45 +308,63 @@ export function App() {
         onSessionChange={handleSessionChange}
       />
 
-      {/* Real-time In-App Notification Toast Banner */}
+      {/* Real-time In-App Emergency Notification Overlay Modal */}
       {newBookingToast && (
         <div style={{
+          position: 'fixed',
+          top: '1rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'calc(100% - 2rem)',
+          maxWidth: '650px',
           backgroundColor: '#0f172a',
           color: '#ffffff',
-          padding: '1rem 1.5rem',
-          margin: '1rem max(1rem, calc((100vw - 1200px) / 2))',
-          borderRadius: '12px',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+          padding: '1.25rem 1.5rem',
+          borderRadius: '16px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 2px #22c55e',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderLeft: '6px solid #22c55e',
+          flexWrap: 'wrap',
           gap: '1rem',
-          zIndex: 99
+          zIndex: 99999
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Bell size={24} style={{ color: '#4ade80', flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{ backgroundColor: '#22c55e', color: '#000000', padding: '0.65rem', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Bell size={26} />
+            </div>
             <div>
-              <strong style={{ fontSize: '1rem', color: '#4ade80' }}>🚨 NEW REPAIR BOOKING RECEIVED!</strong>
-              <div style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>
-                Complaint <strong>{newBookingToast.id}</strong> by <strong>{newBookingToast.customer.name}</strong> ({newBookingToast.machine.brand} - {newBookingToast.customer.mobile})
+              <strong style={{ fontSize: '1.05rem', color: '#4ade80', display: 'block' }}>🚨 NEW REPAIR BOOKING RECEIVED!</strong>
+              <div style={{ fontSize: '0.9rem', color: '#f8fafc', marginTop: '0.2rem' }}>
+                ID: <strong>{newBookingToast.id}</strong> | <strong>{newBookingToast.customer.name}</strong> ({newBookingToast.customer.mobile})
+              </div>
+              <div style={{ fontSize: '0.825rem', color: '#94a3b8' }}>
+                {newBookingToast.machine.brand} • {newBookingToast.problem.selectedProblems.join(', ')}
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', width: '100%', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+            <a 
+              href={`tel:${newBookingToast.customer.mobile}`}
+              className="btn btn-sm"
+              style={{ backgroundColor: '#1e293b', color: '#38bdf8', border: '1px solid #38bdf8', fontWeight: 700, padding: '0.45rem 0.85rem', borderRadius: '8px', textDecoration: 'none', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              📞 Call Customer
+            </a>
             <button 
               onClick={() => {
                 setSelectedComplaintDetail(newBookingToast);
                 setNewBookingToast(null);
               }}
               className="btn btn-sm btn-primary"
-              style={{ backgroundColor: '#2563eb', fontWeight: 700 }}
+              style={{ backgroundColor: '#2563eb', fontWeight: 700, padding: '0.45rem 1rem', borderRadius: '8px', fontSize: '0.85rem' }}
             >
-              View Booking
+              📱 View Details
             </button>
             <button 
               onClick={() => setNewBookingToast(null)}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.4rem', padding: '0 0.5rem' }}
+              title="Dismiss Alert"
             >
               ✕
             </button>
