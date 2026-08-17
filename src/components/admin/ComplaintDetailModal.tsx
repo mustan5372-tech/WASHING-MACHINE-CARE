@@ -98,9 +98,10 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
   // Delete Complaint Action
   const handleDeleteComplaint = async () => {
     if (window.confirm(`Are you sure you want to permanently delete complaint ${currentComplaint.id}? It will be removed from all admin dashboards and customer tracking.`)) {
-      await deleteComplaintFromFirebase(currentComplaint.id);
       deleteComplaintLocal(currentComplaint.id);
+      await deleteComplaintFromFirebase(currentComplaint.id);
       addAuditLog('Admin', 'DELETE_COMPLAINT', `Deleted complaint ${currentComplaint.id}`);
+      window.dispatchEvent(new Event('wmc_complaints_updated'));
       onClose();
     }
   };

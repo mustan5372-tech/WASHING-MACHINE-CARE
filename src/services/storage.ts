@@ -35,11 +35,13 @@ export const saveComplaint = (complaint: Complaint): void => {
   }
   localStorage.setItem(KEYS.COMPLAINTS, JSON.stringify(complaints));
   saveComplaintToFirebase(complaint);
+  window.dispatchEvent(new Event('wmc_complaints_updated'));
 };
 
 export const deleteComplaintLocal = (id: string): void => {
   const complaints = getComplaints().filter(c => c.id.toLowerCase() !== id.toLowerCase());
   localStorage.setItem(KEYS.COMPLAINTS, JSON.stringify(complaints));
+  window.dispatchEvent(new Event('wmc_complaints_updated'));
 };
 
 export const getComplaintById = (id: string): Complaint | undefined => {
