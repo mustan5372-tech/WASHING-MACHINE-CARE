@@ -150,22 +150,31 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ settings, onUpdate
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <a 
             href="/website-qr.png" 
             download="washingmachinecare-qr.png"
             className="btn btn-secondary btn-sm"
             style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
           >
-            <Download size={16} /> Download PNG
+            <Download size={16} /> Download QR PNG
           </a>
           <button 
             onClick={handlePrintQR}
-            className="btn btn-primary btn-sm"
+            className="btn btn-secondary btn-sm"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
           >
-            <Printer size={16} /> Print Standee
+            <Printer size={16} /> Print Mini Standee
           </button>
+          <a 
+            href="/poster.html?autoprint=true" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary btn-sm"
+            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
+          >
+            <Printer size={16} /> Print Full A4 Poster 🖨️
+          </a>
         </div>
       </div>
 
