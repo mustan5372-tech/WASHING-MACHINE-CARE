@@ -28,60 +28,57 @@ import { Shield, Lock, Bell } from 'lucide-react';
  * Route resolution helper for clean URL paths (/repair, /track-complaint, etc.)
  */
 const getTabFromPath = (path: string, search: string): { tab: string; param?: string } => {
+  const urlParams = new URLSearchParams(search);
+  const idFromQuery = urlParams.get('id');
+
   const cleanPath = path.toLowerCase().replace(/\/$/, '');
-  const searchParams = new URLSearchParams(search);
-  const tabQuery = searchParams.get('tab');
-  const idQuery = searchParams.get('id');
 
-  if (tabQuery) {
-    return { tab: tabQuery, param: idQuery || undefined };
-  }
-
-  if (cleanPath === '/repair' || cleanPath === '/book-repair') {
-    return { tab: 'book-repair' };
-  }
-  if (cleanPath === '/track-complaint' || cleanPath === '/track') {
-    return { tab: 'track-complaint', param: idQuery || undefined };
-  }
-  if (cleanPath === '/contact') {
-    return { tab: 'contact' };
-  }
-  if (cleanPath === '/admin' || cleanPath === '/admin-dashboard') {
-    return { tab: 'admin-dashboard' };
-  }
-  if (cleanPath === '/admin-complaints') {
-    return { tab: 'admin-complaints' };
-  }
-  if (cleanPath === '/admin-analytics') {
-    return { tab: 'admin-analytics' };
-  }
-  if (cleanPath === '/admin-settings') {
-    return { tab: 'admin-settings' };
+  if (cleanPath.startsWith('/track')) {
+    const parts = cleanPath.split('/track/');
+    const idFromPath = parts[1] || idFromQuery || '';
+    return { tab: 'track-complaint', param: idFromPath };
   }
 
-  return { tab: 'home' };
+  switch (cleanPath) {
+    case '/repair':
+    case '/book':
+      return { tab: 'book-repair' };
+    case '/contact':
+      return { tab: 'contact' };
+    case '/admin':
+    case '/admin/dashboard':
+      return { tab: 'admin-dashboard' };
+    case '/admin/complaints':
+      return { tab: 'admin-complaints' };
+    case '/admin/reports':
+    case '/admin/analytics':
+      return { tab: 'admin-analytics' };
+    case '/admin/settings':
+      return { tab: 'admin-settings' };
+    default:
+      return { tab: 'home' };
+  }
 };
 
 /**
- * Convert tab key into clean URL path
+ * Helper to construct clean browser history path
  */
 const getPathFromTab = (tab: string, param?: string): string => {
   switch (tab) {
     case 'book-repair':
       return '/repair';
     case 'track-complaint':
-      return param ? `/track-complaint?id=${param}` : '/track-complaint';
+      return param ? `/track/${param}` : '/track';
     case 'contact':
       return '/contact';
     case 'admin-dashboard':
       return '/admin';
     case 'admin-complaints':
-      return '/admin-complaints';
+      return '/admin/complaints';
     case 'admin-analytics':
-      return '/admin-analytics';
+      return '/admin/reports';
     case 'admin-settings':
-      return '/admin-settings';
-    case 'home':
+      return '/admin/settings';
     default:
       return '/';
   }
@@ -93,6 +90,9 @@ const getPathFromTab = (tab: string, param?: string): string => {
 const playNotificationChime = () => {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
@@ -121,8 +121,12 @@ export function App() {
     'Notification' in window ? Notification.permission : 'denied'
   );
 
-  // Track known complaint count to trigger new booking alerts
-  const knownComplaintCountRef = useRef<number>(complaints.length);
+  // In-app Toast Banner for New Bookings
+  const [newBookingToast, setNewBookingToast] = useState<Complaint | null>(null);
+
+  // Track known complaint IDs to trigger new booking alerts
+  const knownComplaintIdsRef = useRef<Set<string>>(new Set(getComplaints().map(c => c.id)));
+  const isInitialSyncRef = useRef<boolean>(true);
 
   // Initialize route state from current browser URL
   const initialRoute = getTabFromPath(window.location.pathname, window.location.search);
@@ -157,19 +161,26 @@ export function App() {
 
   // Sync state from local storage & Firebase real-time
   const reloadData = () => {
-    setComplaints(getComplaints());
+    const fresh = getComplaints();
+    setComplaints(fresh);
     setSettings(getSettings());
   };
 
   useEffect(() => {
     reloadData();
 
-    // Subscribe to Firebase Cloud Firestore updates
+    const handleCustomUpdate = () => reloadData();
+    window.addEventListener('wmc_complaints_updated', handleCustomUpdate);
+
+    // Subscribe to Firebase Cloud Firestore real-time updates
     const unsubscribe = listenToComplaints((remoteComplaints) => {
       if (remoteComplaints && remoteComplaints.length > 0) {
-        // Trigger alert if new repair request booked
-        if (remoteComplaints.length > knownComplaintCountRef.current && (session.role === 'admin' || session.role === 'staff')) {
-          const newest = remoteComplaints[0];
+        // Identify newly added complaints
+        const newlyAdded = remoteComplaints.filter(c => !knownComplaintIdsRef.current.has(c.id));
+
+        if (newlyAdded.length > 0 && !isInitialSyncRef.current) {
+          const newest = newlyAdded[0];
+          setNewBookingToast(newest);
           playNotificationChime();
 
           if ('Notification' in window && Notification.permission === 'granted') {
@@ -180,15 +191,18 @@ export function App() {
             });
           }
         }
-        knownComplaintCountRef.current = remoteComplaints.length;
+
+        knownComplaintIdsRef.current = new Set(remoteComplaints.map(c => c.id));
+        isInitialSyncRef.current = false;
         setComplaints(remoteComplaints);
       }
     });
 
     return () => {
+      window.removeEventListener('wmc_complaints_updated', handleCustomUpdate);
       if (unsubscribe) unsubscribe();
     };
-  }, [session.role]);
+  }, []);
 
   const handleNavigate = (tab: string, param?: string) => {
     setCurrentTab(tab);
@@ -214,6 +228,10 @@ export function App() {
     addAuditLog(newSession.name, 'SWITCH_ROLE', `Switched role to ${newSession.role}`);
   };
 
+  const handleDeleteComplaint = (id: string) => {
+    setComplaints(prev => prev.filter(c => c.id.toLowerCase() !== id.toLowerCase()));
+  };
+
   // Helper check for admin authorization
   const isAdminOrStaff = session.role === 'admin' || session.role === 'staff';
 
@@ -227,6 +245,52 @@ export function App() {
         session={session}
         onSessionChange={handleSessionChange}
       />
+
+      {/* Real-time In-App Notification Toast Banner */}
+      {newBookingToast && (
+        <div style={{
+          backgroundColor: '#0f172a',
+          color: '#ffffff',
+          padding: '1rem 1.5rem',
+          margin: '1rem max(1rem, calc((100vw - 1200px) / 2))',
+          borderRadius: '12px',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderLeft: '6px solid #22c55e',
+          gap: '1rem',
+          zIndex: 99
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Bell size={24} style={{ color: '#4ade80', flexShrink: 0 }} />
+            <div>
+              <strong style={{ fontSize: '1rem', color: '#4ade80' }}>🚨 NEW REPAIR BOOKING RECEIVED!</strong>
+              <div style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>
+                Complaint <strong>{newBookingToast.id}</strong> by <strong>{newBookingToast.customer.name}</strong> ({newBookingToast.machine.brand} - {newBookingToast.customer.mobile})
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+            <button 
+              onClick={() => {
+                setSelectedComplaintDetail(newBookingToast);
+                setNewBookingToast(null);
+              }}
+              className="btn btn-sm btn-primary"
+              style={{ backgroundColor: '#2563eb', fontWeight: 700 }}
+            >
+              View Booking
+            </button>
+            <button 
+              onClick={() => setNewBookingToast(null)}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="main-content">
@@ -302,6 +366,7 @@ export function App() {
                 onOpenComplaintDetail={(c) => setSelectedComplaintDetail(c)}
                 onOpenNewComplaintModal={() => setShowNewComplaintModal(true)}
                 onNavigate={handleNavigate}
+                onDeleteComplaint={handleDeleteComplaint}
               />
             )}
 
@@ -322,49 +387,45 @@ export function App() {
 
       </main>
 
-      {/* Footer */}
+      {/* Footer Component */}
       <Footer 
         settings={settings}
         onNavigate={handleNavigate}
       />
 
-      {/* MODALS */}
-
-      {/* Complaint Detail Modal */}
-      {selectedComplaintDetail && isAdminOrStaff && (
+      {/* ACTIVE MODALS & OVERLAYS */}
+      
+      {/* 1. Complaint Detail & Service Status Modal */}
+      {selectedComplaintDetail && (
         <ComplaintDetailModal 
           complaint={selectedComplaintDetail}
           settings={settings}
-          onClose={() => {
+          onClose={() => setSelectedComplaintDetail(null)}
+          onOpenInvoice={(complaint) => {
             setSelectedComplaintDetail(null);
-            reloadData();
-          }}
-          onOpenInvoice={(c) => {
-            setSelectedComplaintDetail(null);
-            setSelectedInvoiceComplaint(c);
+            setSelectedInvoiceComplaint(complaint);
           }}
         />
       )}
 
-      {/* Printable Invoice Modal */}
+      {/* 2. New Complaint Modal (Admin Created) */}
+      {showNewComplaintModal && (
+        <NewComplaintModal 
+          settings={settings}
+          onClose={() => setShowNewComplaintModal(false)}
+          onSuccess={() => {
+            setShowNewComplaintModal(false);
+            reloadData();
+          }}
+        />
+      )}
+
+      {/* 3. Invoice & Warranty PDF Modal */}
       {selectedInvoiceComplaint && (
         <InvoiceModal 
           complaint={selectedInvoiceComplaint}
           settings={settings}
           onClose={() => setSelectedInvoiceComplaint(null)}
-        />
-      )}
-
-      {/* Admin New Complaint Modal */}
-      {showNewComplaintModal && isAdminOrStaff && (
-        <NewComplaintModal 
-          settings={settings}
-          onClose={() => setShowNewComplaintModal(false)}
-          onSuccess={(newC) => {
-            setShowNewComplaintModal(false);
-            reloadData();
-            setSelectedComplaintDetail(newC);
-          }}
         />
       )}
 

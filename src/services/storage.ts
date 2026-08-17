@@ -17,7 +17,8 @@ export const getComplaints = (): Complaint[] => {
       localStorage.setItem(KEYS.COMPLAINTS, JSON.stringify(INITIAL_COMPLAINTS));
       return INITIAL_COMPLAINTS;
     }
-    return JSON.parse(raw);
+    const parsed: Complaint[] = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : INITIAL_COMPLAINTS;
   } catch (err) {
     console.error('Error reading complaints from localStorage:', err);
     return INITIAL_COMPLAINTS;
@@ -26,7 +27,7 @@ export const getComplaints = (): Complaint[] => {
 
 export const saveComplaint = (complaint: Complaint): void => {
   const complaints = getComplaints();
-  const index = complaints.findIndex(c => c.id === complaint.id);
+  const index = complaints.findIndex(c => c.id.toLowerCase() === complaint.id.toLowerCase());
   if (index >= 0) {
     complaints[index] = complaint;
   } else {
@@ -46,13 +47,38 @@ export const getComplaintById = (id: string): Complaint | undefined => {
   return complaints.find(c => c.id.toLowerCase() === id.toLowerCase());
 };
 
+/**
+ * Generate Guaranteed Unique Complaint ID by scanning highest existing ID number
+ */
 export const generateNextComplaintId = (): string => {
   try {
+    const complaints = getComplaints();
+    let maxNum = 105;
+
+    // Scan all existing complaints to find the highest number
+    complaints.forEach(c => {
+      const match = c.id.match(/WMC-(\d+)/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    });
+
+    // Check local counter if higher
     const rawCounter = localStorage.getItem(KEYS.COUNTER);
-    let counter = rawCounter ? parseInt(rawCounter, 10) : 105;
-    counter += 1;
-    localStorage.setItem(KEYS.COUNTER, counter.toString());
-    const padded = counter.toString().padStart(6, '0');
+    if (rawCounter) {
+      const cNum = parseInt(rawCounter, 10);
+      if (!isNaN(cNum) && cNum > maxNum) {
+        maxNum = cNum;
+      }
+    }
+
+    const nextNum = maxNum + 1;
+    localStorage.setItem(KEYS.COUNTER, nextNum.toString());
+
+    const padded = nextNum.toString().padStart(6, '0');
     return `WMC-${padded}`;
   } catch (err) {
     console.error('Error generating complaint ID:', err);

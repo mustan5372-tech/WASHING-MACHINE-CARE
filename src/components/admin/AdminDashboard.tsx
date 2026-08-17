@@ -17,13 +17,15 @@ interface AdminDashboardProps {
   onOpenComplaintDetail: (complaint: Complaint) => void;
   onOpenNewComplaintModal: () => void;
   onNavigate: (tab: string) => void;
+  onDeleteComplaint?: (id: string) => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   complaints,
   settings,
   onOpenComplaintDetail,
-  onOpenNewComplaintModal
+  onOpenNewComplaintModal,
+  onDeleteComplaint
 }) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -79,9 +81,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleDeleteComplaint = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (window.confirm(`Are you sure you want to delete complaint ${id}? It will be permanently removed from all admin screens and customer tracking.`)) {
-      await deleteComplaintFromFirebase(id);
       deleteComplaintLocal(id);
+      await deleteComplaintFromFirebase(id);
       addAuditLog('Admin', 'DELETE_COMPLAINT', `Deleted complaint ${id}`);
+      if (onDeleteComplaint) {
+        onDeleteComplaint(id);
+      }
     }
   };
 
