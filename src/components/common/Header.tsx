@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { UserSession } from '../../types';
-import { Menu, X, Shield, User, Phone, Search, PlusCircle, LogOut } from 'lucide-react';
+import { Menu, X, Shield, User, Phone, Search, PlusCircle, LogOut, Smartphone } from 'lucide-react';
 import { AdminLoginModal } from '../admin/AdminLoginModal';
 
 interface HeaderProps {
@@ -39,6 +39,17 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  const handleTriggerInstall = () => {
+    setMobileMenuOpen(false);
+    // Find install button on home page or trigger prompt
+    const installBanner = document.getElementById('pwa-install-banner');
+    if (installBanner) {
+      installBanner.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      onNavigate('home');
+    }
+  };
+
   return (
     <header style={{ backgroundColor: '#ffffff', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 100 }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -67,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Desktop Navigation Links */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }} className="desktop-nav">
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }} className="desktop-nav">
           {session.role === 'customer' ? (
             <>
               <button 
@@ -123,6 +134,15 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </>
           )}
+
+          {/* Install App Button */}
+          <button 
+            onClick={handleTriggerInstall}
+            className="btn btn-sm btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, borderRadius: '20px', padding: '0.35rem 0.85rem' }}
+          >
+            <Smartphone size={14} /> Install App 📱
+          </button>
 
           {/* Role Switcher Pill */}
           <div style={{ position: 'relative' }}>
@@ -191,6 +211,10 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Mobile Drawer Navigation */}
       {mobileMenuOpen && (
         <div style={{ backgroundColor: '#ffffff', borderTop: '1px solid #e2e8f0', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <button onClick={handleTriggerInstall} className="btn btn-primary btn-block" style={{ fontWeight: 800 }}>
+            📱 Install App (PWA)
+          </button>
+
           {session.role === 'customer' ? (
             <>
               <button onClick={() => handleNavClick('home')} className="btn btn-secondary btn-block">Home</button>

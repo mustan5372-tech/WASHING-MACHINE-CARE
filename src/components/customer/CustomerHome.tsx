@@ -4,6 +4,7 @@ import {
   Wrench, ShieldCheck, Clock, Phone, Search, 
   ArrowRight, Award, ThumbsUp, Zap 
 } from 'lucide-react';
+import { PwaInstallPrompt } from '../common/PwaInstallPrompt';
 
 interface CustomerHomeProps {
   settings: BusinessSettings;
@@ -143,6 +144,11 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ onNavigate }) => {
           </div>
         </div>
       </section>
+
+      {/* PWA App Install Banner */}
+      <div id="pwa-install-banner">
+        <PwaInstallPrompt />
+      </div>
 
       {/* Quick Action Card Banner */}
       <div 
