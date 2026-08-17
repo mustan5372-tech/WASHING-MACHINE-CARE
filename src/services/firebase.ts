@@ -103,9 +103,15 @@ export const listenToComplaints = (onUpdate: (complaints: Complaint[]) => void) 
   try {
     const q = query(collection(db, 'complaints'), orderBy('createdAt', 'desc'));
     return onSnapshot(q, (snapshot) => {
+      const deletedRaw = localStorage.getItem('wmc_deleted_ids_v1');
+      const deletedIds: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
+
       const list: Complaint[] = [];
       snapshot.forEach((docSnap) => {
-        list.push(docSnap.data() as Complaint);
+        const item = docSnap.data() as Complaint;
+        if (item && item.id && !deletedIds.includes(item.id.toLowerCase())) {
+          list.push(item);
+        }
       });
       onUpdate(list);
     }, (err) => {
@@ -142,6 +148,9 @@ export const saveComplaintToFirebase = async (complaint: Complaint): Promise<voi
 export const deleteComplaintFromFirebase = async (complaintId: string): Promise<void> => {
   try {
     await deleteDoc(doc(db, 'complaints', complaintId));
+    if (complaintId !== complaintId.toLowerCase()) {
+      await deleteDoc(doc(db, 'complaints', complaintId.toLowerCase()));
+    }
   } catch (err) {
     console.warn('Could not delete from Firebase:', err);
   }

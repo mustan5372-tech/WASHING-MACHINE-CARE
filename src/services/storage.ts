@@ -1,27 +1,41 @@
 import type { Complaint, BusinessSettings, AuditLog } from '../types';
-import { INITIAL_COMPLAINTS, INITIAL_SETTINGS, INITIAL_AUDIT_LOGS } from '../data/mockData';
+import { INITIAL_SETTINGS, INITIAL_AUDIT_LOGS } from '../data/mockData';
 import { saveComplaintToFirebase } from './firebase';
 
 const KEYS = {
   COMPLAINTS: 'wmc_complaints_v1',
   SETTINGS: 'wmc_settings_v1',
   AUDIT_LOGS: 'wmc_audit_logs_v1',
-  COUNTER: 'wmc_complaint_counter_v1'
+  COUNTER: 'wmc_complaint_counter_v1',
+  DELETED_IDS: 'wmc_deleted_ids_v1'
+};
+
+// Helper to get blacklist of deleted complaint IDs
+export const getDeletedComplaintIds = (): string[] => {
+  try {
+    const raw = localStorage.getItem(KEYS.DELETED_IDS);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
 };
 
 // COMPLAINTS STORAGE
 export const getComplaints = (): Complaint[] => {
   try {
+    const deletedIds = getDeletedComplaintIds();
     const raw = localStorage.getItem(KEYS.COMPLAINTS);
     if (!raw) {
-      localStorage.setItem(KEYS.COMPLAINTS, JSON.stringify(INITIAL_COMPLAINTS));
-      return INITIAL_COMPLAINTS;
+      localStorage.setItem(KEYS.COMPLAINTS, JSON.stringify([]));
+      return [];
     }
     const parsed: Complaint[] = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_COMPLAINTS;
+    if (!Array.isArray(parsed)) return [];
+    
+    return parsed.filter(c => c && c.id && !deletedIds.includes(c.id.toLowerCase()));
   } catch (err) {
     console.error('Error reading complaints from localStorage:', err);
-    return INITIAL_COMPLAINTS;
+    return [];
   }
 };
 
@@ -39,8 +53,25 @@ export const saveComplaint = (complaint: Complaint): void => {
 };
 
 export const deleteComplaintLocal = (id: string): void => {
-  const complaints = getComplaints().filter(c => c.id.toLowerCase() !== id.toLowerCase());
-  localStorage.setItem(KEYS.COMPLAINTS, JSON.stringify(complaints));
+  const lowerId = id.toLowerCase();
+  
+  // 1. Save to persistent deleted IDs blacklist
+  const deletedIds = getDeletedComplaintIds();
+  if (!deletedIds.includes(lowerId)) {
+    deletedIds.push(lowerId);
+    localStorage.setItem(KEYS.DELETED_IDS, JSON.stringify(deletedIds));
+  }
+
+  // 2. Filter out from local complaints
+  const raw = localStorage.getItem(KEYS.COMPLAINTS);
+  if (raw) {
+    try {
+      const complaints: Complaint[] = JSON.parse(raw);
+      const filtered = complaints.filter(c => c.id.toLowerCase() !== lowerId);
+      localStorage.setItem(KEYS.COMPLAINTS, JSON.stringify(filtered));
+    } catch (e) {}
+  }
+
   window.dispatchEvent(new Event('wmc_complaints_updated'));
 };
 
@@ -59,6 +90,7 @@ export const generateNextComplaintId = (): string => {
 
     // Scan all existing complaints to find the highest number
     complaints.forEach(c => {
+      if (!c || !c.id) return;
       const match = c.id.match(/WMC-(\d+)/i);
       if (match) {
         const num = parseInt(match[1], 10);
@@ -139,6 +171,7 @@ export const clearAllData = (): void => {
   localStorage.removeItem(KEYS.COMPLAINTS);
   localStorage.removeItem(KEYS.AUDIT_LOGS);
   localStorage.removeItem(KEYS.COUNTER);
+  localStorage.removeItem(KEYS.DELETED_IDS);
   window.location.reload();
 };
 
