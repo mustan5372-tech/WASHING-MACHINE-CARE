@@ -126,6 +126,7 @@ export interface BusinessSettings {
   domain: string;
   logoUrl: string;
   phone: string;
+  secondaryPhone?: string;
   whatsapp: string;
   email: string;
   address: string;

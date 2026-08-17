@@ -8,7 +8,8 @@ interface ContactPageProps {
 }
 
 export const ContactPage: React.FC<ContactPageProps> = ({ settings }) => {
-  const primaryPhone = "+91 9826247802";
+  const primaryPhone = "+91 9926064529";
+  const secondaryPhone = "+91 9826247802";
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -34,7 +35,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ settings }) => {
                 <Phone size={20} style={{ color: '#1d4ed8' }} />
               </div>
               <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>HELPLINE 1</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase' }}>HELPLINE 1 (PRIMARY)</div>
                 <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>{primaryPhone}</div>
               </div>
             </div>
@@ -50,12 +51,12 @@ export const ContactPage: React.FC<ContactPageProps> = ({ settings }) => {
                 <Phone size={20} style={{ color: '#059669' }} />
               </div>
               <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>HELPLINE 2</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>Direct Support</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#059669', textTransform: 'uppercase' }}>HELPLINE 2 (SECONDARY)</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>{secondaryPhone}</div>
               </div>
             </div>
-            <a href={`tel:${primaryPhone.replace(/\s+/g, '')}`} className="btn btn-success btn-block btn-sm" style={{ marginTop: '0.75rem' }}>
-              <Phone size={16} /> Call Helpline 2
+            <a href={`tel:${secondaryPhone.replace(/\s+/g, '')}`} className="btn btn-success btn-block btn-sm" style={{ marginTop: '0.75rem' }}>
+              <Phone size={16} /> Call {secondaryPhone}
             </a>
           </div>
 

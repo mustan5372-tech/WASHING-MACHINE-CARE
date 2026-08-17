@@ -22,7 +22,8 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ onNavigate }) => {
     { name: 'Error Code', desc: 'Display panel showing error code (OE, 4E, etc.)' }
   ];
 
-  const primaryPhone = "+91 9826247802";
+  const primaryPhone = "+91 9926064529";
+  const secondaryPhone = "+91 9826247802";
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
@@ -132,11 +133,11 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ onNavigate }) => {
               </a>
 
               <a 
-                href={`tel:${primaryPhone.replace(/\s+/g, '')}`}
+                href={`tel:${secondaryPhone.replace(/\s+/g, '')}`}
                 className="btn btn-secondary btn-block"
                 style={{ borderRadius: '12px', fontWeight: 700, backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
-                <Phone size={16} style={{ color: '#2563eb' }} /> Call Helpline 2
+                <Phone size={16} style={{ color: '#2563eb' }} /> Call {secondaryPhone}
               </a>
             </div>
           </div>

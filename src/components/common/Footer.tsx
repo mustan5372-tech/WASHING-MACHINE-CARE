@@ -8,7 +8,8 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
-  const primaryPhone = "+91 9826247802";
+  const primaryPhone = "+91 9926064529";
+  const secondaryPhone = "+91 9826247802";
 
   return (
     <footer style={{ backgroundColor: '#0f172a', color: '#f8fafc', paddingTop: '3.5rem', paddingBottom: '2.5rem', borderTop: '1px solid #1e293b' }}>
@@ -74,8 +75,8 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <Phone size={16} style={{ color: '#22c55e' }} />
-                <a href={`tel:${primaryPhone.replace(/\s+/g, '')}`} style={{ color: '#22c55e', fontWeight: 700, textDecoration: 'none' }}>
-                  Direct Helpline 2
+                <a href={`tel:${secondaryPhone.replace(/\s+/g, '')}`} style={{ color: '#22c55e', fontWeight: 700, textDecoration: 'none' }}>
+                  {secondaryPhone}
                 </a>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
