@@ -169,6 +169,19 @@ export function App() {
   useEffect(() => {
     reloadData();
 
+    // Auto-refresh when PWA app is opened or gains focus
+    const handleAppFocus = () => {
+      if (document.visibilityState === 'visible') {
+        reloadData();
+        if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+          navigator.serviceWorker.ready.then(reg => reg.update());
+        }
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleAppFocus);
+    window.addEventListener('focus', handleAppFocus);
+
     const handleCustomUpdate = () => reloadData();
     window.addEventListener('wmc_complaints_updated', handleCustomUpdate);
 
@@ -199,6 +212,8 @@ export function App() {
     });
 
     return () => {
+      window.removeEventListener('visibilitychange', handleAppFocus);
+      window.removeEventListener('focus', handleAppFocus);
       window.removeEventListener('wmc_complaints_updated', handleCustomUpdate);
       if (unsubscribe) unsubscribe();
     };
