@@ -42,6 +42,8 @@ export const getComplaints = (): Complaint[] => {
 export const saveComplaint = (complaint: Complaint): void => {
   const complaints = getComplaints();
   const index = complaints.findIndex(c => c.id.toLowerCase() === complaint.id.toLowerCase());
+  const isNew = index < 0;
+
   if (index >= 0) {
     complaints[index] = complaint;
   } else {
@@ -50,6 +52,10 @@ export const saveComplaint = (complaint: Complaint): void => {
   localStorage.setItem(KEYS.COMPLAINTS, JSON.stringify(complaints));
   saveComplaintToFirebase(complaint);
   window.dispatchEvent(new Event('wmc_complaints_updated'));
+
+  if (isNew) {
+    window.dispatchEvent(new CustomEvent('wmc_new_booking_created', { detail: complaint }));
+  }
 };
 
 export const deleteComplaintLocal = (id: string): void => {

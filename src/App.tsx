@@ -179,30 +179,58 @@ export function App() {
       }
     };
 
+    const handleCustomUpdate = () => reloadData();
+
+    const triggerMobileNotification = (complaint: Complaint) => {
+      setNewBookingToast(complaint);
+      playNotificationChime();
+
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification(`🚨 New Repair Booking: ${complaint.id}`, {
+              body: `${complaint.customer.name} (${complaint.customer.mobile}) - ${complaint.machine.brand}`,
+              icon: '/logo.png',
+              badge: '/logo.png',
+              vibrate: [300, 100, 300, 100, 300],
+              tag: complaint.id,
+              requireInteraction: true,
+              data: { url: '/admin' }
+            } as any);
+          }).catch(() => {
+            new Notification(`🚨 New Repair Booking: ${complaint.id}`, {
+              body: `${complaint.customer.name} (${complaint.customer.mobile}) - ${complaint.machine.brand}`,
+              icon: '/logo.png'
+            });
+          });
+        } else {
+          new Notification(`🚨 New Repair Booking: ${complaint.id}`, {
+            body: `${complaint.customer.name} (${complaint.customer.mobile}) - ${complaint.machine.brand}`,
+            icon: '/logo.png'
+          });
+        }
+      }
+    };
+
+    const handleNewBookingCreated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail) {
+        triggerMobileNotification(customEvent.detail);
+      }
+    };
+
     window.addEventListener('visibilitychange', handleAppFocus);
     window.addEventListener('focus', handleAppFocus);
-
-    const handleCustomUpdate = () => reloadData();
     window.addEventListener('wmc_complaints_updated', handleCustomUpdate);
+    window.addEventListener('wmc_new_booking_created', handleNewBookingCreated);
 
     // Subscribe to Firebase Cloud Firestore real-time updates
     const unsubscribe = listenToComplaints((remoteComplaints) => {
       if (remoteComplaints && remoteComplaints.length > 0) {
-        // Identify newly added complaints
         const newlyAdded = remoteComplaints.filter(c => !knownComplaintIdsRef.current.has(c.id));
 
         if (newlyAdded.length > 0 && !isInitialSyncRef.current) {
-          const newest = newlyAdded[0];
-          setNewBookingToast(newest);
-          playNotificationChime();
-
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('🚨 New Repair Request Booked!', {
-              body: `${newest.id}: ${newest.customer.name} - ${newest.machine.brand} (${newest.customer.mobile})`,
-              icon: '/logo.png',
-              tag: newest.id
-            });
-          }
+          newlyAdded.forEach(complaint => triggerMobileNotification(complaint));
         }
 
         knownComplaintIdsRef.current = new Set(remoteComplaints.map(c => c.id));
@@ -215,6 +243,7 @@ export function App() {
       window.removeEventListener('visibilitychange', handleAppFocus);
       window.removeEventListener('focus', handleAppFocus);
       window.removeEventListener('wmc_complaints_updated', handleCustomUpdate);
+      window.removeEventListener('wmc_new_booking_created', handleNewBookingCreated);
       if (unsubscribe) unsubscribe();
     };
   }, []);
