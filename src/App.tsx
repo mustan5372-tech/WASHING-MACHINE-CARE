@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import type { Complaint, BusinessSettings, UserSession } from './types';
 import { 
   getComplaints, 
@@ -124,10 +124,6 @@ export function App() {
   // In-app Toast Banner for New Bookings
   const [newBookingToast, setNewBookingToast] = useState<Complaint | null>(null);
 
-  // Track known complaint IDs to trigger new booking alerts
-  const knownComplaintIdsRef = useRef<Set<string>>(new Set(getComplaints().map(c => c.id)));
-  const isInitialSyncRef = useRef<boolean>(true);
-
   // Initialize route state from current browser URL
   const initialRoute = getTabFromPath(window.location.pathname, window.location.search);
   const [currentTab, setCurrentTab] = useState<string>(initialRoute.tab);
@@ -181,7 +177,33 @@ export function App() {
 
     const handleCustomUpdate = () => reloadData();
 
+    const getAlertedComplaintIds = (): string[] => {
+      try {
+        const raw = sessionStorage.getItem('wmc_alerted_ids');
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    };
+
+    const markComplaintAsAlerted = (id: string) => {
+      try {
+        const ids = getAlertedComplaintIds();
+        if (!ids.includes(id.toLowerCase())) {
+          ids.push(id.toLowerCase());
+          sessionStorage.setItem('wmc_alerted_ids', JSON.stringify(ids));
+        }
+      } catch (e) {}
+    };
+
     const triggerMobileNotification = (complaint: Complaint) => {
+      if (!complaint || !complaint.id) return;
+      const lowerId = complaint.id.toLowerCase();
+      const alerted = getAlertedComplaintIds();
+      if (alerted.includes(lowerId)) return; // Already alerted on this phone device
+
+      markComplaintAsAlerted(lowerId);
+
       setNewBookingToast(complaint);
       playNotificationChime();
 
@@ -245,14 +267,24 @@ export function App() {
     // Subscribe to Firebase Cloud Firestore real-time updates
     const unsubscribe = listenToComplaints((remoteComplaints) => {
       if (remoteComplaints && remoteComplaints.length > 0) {
-        const newlyAdded = remoteComplaints.filter(c => !knownComplaintIdsRef.current.has(c.id));
+        const now = Date.now();
+        const FifteenMinutesMs = 15 * 60 * 1000;
 
-        if (newlyAdded.length > 0 && !isInitialSyncRef.current) {
-          newlyAdded.forEach(complaint => triggerMobileNotification(complaint));
-        }
+        remoteComplaints.forEach(complaint => {
+          if (complaint && complaint.createdAt) {
+            const createdTime = new Date(complaint.createdAt).getTime();
+            const ageMs = now - createdTime;
 
-        knownComplaintIdsRef.current = new Set(remoteComplaints.map(c => c.id));
-        isInitialSyncRef.current = false;
+            // Trigger mobile popup, sound & vibration if booking was created within 15 minutes AND hasn't alerted on this phone yet
+            if (!isNaN(createdTime) && ageMs >= 0 && ageMs <= FifteenMinutesMs) {
+              const alerted = getAlertedComplaintIds();
+              if (!alerted.includes(complaint.id.toLowerCase())) {
+                triggerMobileNotification(complaint);
+              }
+            }
+          }
+        });
+
         setComplaints(remoteComplaints);
       }
     });
