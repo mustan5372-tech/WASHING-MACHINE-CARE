@@ -31,6 +31,15 @@ const INITIAL_ADMINS: AdminAccount[] = [
     password: '515253',
     role: 'admin',
     createdAt: '2026-08-17T09:32:00Z'
+  },
+  {
+    id: 'admin-3',
+    name: 'Husain Ali',
+    mobile: '9826247802',
+    email: 'husainali@washingmachinecare.shop',
+    password: '515253',
+    role: 'admin',
+    createdAt: '2026-08-17T09:34:00Z'
   }
 ];
 
@@ -54,6 +63,11 @@ export const getAdminAccounts = (): AdminAccount[] => {
     // Ensure Mufaddal Husaini exists
     if (!accounts.some(a => normalizeMobile(a.mobile) === '9926064529')) {
       accounts.push(INITIAL_ADMINS[1]);
+    }
+
+    // Ensure Husain Ali exists
+    if (!accounts.some(a => normalizeMobile(a.mobile) === '9826247802')) {
+      accounts.push(INITIAL_ADMINS[2]);
     }
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
