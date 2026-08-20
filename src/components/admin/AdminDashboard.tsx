@@ -6,7 +6,7 @@ import { AddAdminModal } from './AddAdminModal';
 import { 
   AlertCircle, Wrench, CheckCircle2, Clock, 
   Plus, Search, Download, UserPlus, Trash2, Volume2,
-  LayoutGrid, List, Phone, MapPin, Calendar
+  LayoutGrid, List, Phone, MapPin, Calendar, RotateCw
 } from 'lucide-react';
 import { deleteComplaintFromFirebase, deleteAllComplaintsFromFirebase, playLoudInWebsiteBeep } from '../../services/firebase';
 import { deleteComplaintLocal, purgeAllComplaintsLocal, addAuditLog } from '../../services/storage';
@@ -104,6 +104,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <button 
+            onClick={() => window.location.reload()}
+            className="btn btn-secondary btn-sm"
+            style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontWeight: 700 }}
+            title="Auto-refresh active (auto-syncing continuously every 10s). Click to force instant reload."
+          >
+            <RotateCw size={15} /> Auto-Sync Active (10s) 🔄
+          </button>
+
           <button 
             onClick={handleTestLoudBeep}
             className="btn btn-secondary btn-sm"

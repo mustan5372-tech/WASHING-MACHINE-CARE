@@ -253,6 +253,21 @@ export function App() {
     };
   }, []);
 
+  // Continuous Auto-Refresh System when Admin/Staff is logged in
+  useEffect(() => {
+    if (session.role !== 'admin' && session.role !== 'staff') return;
+
+    // Background interval to continuously sync data and update PWA every 10 seconds
+    const interval = setInterval(() => {
+      reloadData();
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker.ready) {
+        navigator.serviceWorker.ready.then(reg => reg.update()).catch(() => {});
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [session.role]);
+
   const handleNavigate = (tab: string, param?: string) => {
     setCurrentTab(tab);
     if (param) setTrackParamId(param);
