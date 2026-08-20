@@ -8,7 +8,8 @@ import {
   onSnapshot,
   query,
   orderBy,
-  getDocs
+  getDocs,
+  arrayUnion
 } from 'firebase/firestore';
 import { 
   getAuth, 
@@ -18,6 +19,7 @@ import {
   type User 
 } from 'firebase/auth';
 import type { Complaint, ProblemType } from '../types';
+import { isLegacyTestComplaint } from './storage';
 
 // Live Firebase Web App configuration:
 // Project: washing-machine-care-727eb
@@ -73,30 +75,112 @@ export const playLoudInWebsiteBeep = () => {
 };
 
 /**
+ * Scans Cloud Firestore and hard-deletes any legacy test complaints or deleted items
+ */
+export const cleanLegacyFirestoreTestComplaints = async (): Promise<void> => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'complaints'));
+    const deletePromises: Promise<void>[] = [];
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const id = (data && data.id) || docSnap.id;
+      if (isLegacyTestComplaint(id, data?.createdAt) || isLegacyTestComplaint(docSnap.id, data?.createdAt) || data?.isDeleted === true || data?.status === 'DELETED') {
+        deletePromises.push(deleteDoc(docSnap.ref));
+      }
+    });
+    if (deletePromises.length > 0) {
+      await Promise.all(deletePromises);
+      console.log(`Cleaned ${deletePromises.length} legacy test complaints from Cloud Firestore.`);
+    }
+  } catch (err) {
+    console.warn('Legacy cloud clean error:', err);
+  }
+};
+
+/**
  * Real-time listener for Firestore Complaints (Syncs across all logged-in accounts instantly)
  */
 export const listenToComplaints = (onUpdate: (complaints: Complaint[]) => void) => {
   try {
+    // Run cloud auto-clean of any legacy test documents sitting in Cloud Firestore
+    cleanLegacyFirestoreTestComplaints().catch(() => {});
+
+    let cloudDeletedIds: string[] = [];
+    let cloudPurgedAt = 0;
+
+    // 1. Listen to global cloud deletions document
+    onSnapshot(doc(db, 'system', 'deletions'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (Array.isArray(data.ids)) {
+          cloudDeletedIds = data.ids.map((id: string) => id.toLowerCase());
+          try {
+            const localRaw = localStorage.getItem('wmc_deleted_ids_v1');
+            const localIds: string[] = localRaw ? JSON.parse(localRaw) : [];
+            const merged = Array.from(new Set([...localIds, ...cloudDeletedIds]));
+            localStorage.setItem('wmc_deleted_ids_v1', JSON.stringify(merged));
+          } catch (e) {}
+        }
+      }
+    }, () => {});
+
+    // 2. Listen to global cloud purged document
+    onSnapshot(doc(db, 'system', 'purged'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (typeof data.purgedAt === 'number' && data.purgedAt > cloudPurgedAt) {
+          cloudPurgedAt = data.purgedAt;
+          try {
+            localStorage.setItem('wmc_purged_at_v1', cloudPurgedAt.toString());
+          } catch (e) {}
+        }
+      }
+    }, () => {});
+
     const q = query(collection(db, 'complaints'), orderBy('createdAt', 'desc'));
     return onSnapshot(q, (snapshot) => {
       const deletedRaw = localStorage.getItem('wmc_deleted_ids_v1');
-      const deletedIds: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
+      const localDeletedIds: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
+      const allDeletedIds = Array.from(new Set([...localDeletedIds, ...cloudDeletedIds]));
 
       const purgedRaw = localStorage.getItem('wmc_purged_at_v1');
-      const purgedAt = purgedRaw ? parseInt(purgedRaw, 10) : 0;
+      const localPurgedAt = purgedRaw ? parseInt(purgedRaw, 10) : 0;
+      const effectivePurgedAt = Math.max(localPurgedAt, cloudPurgedAt);
 
       const list: Complaint[] = [];
       snapshot.forEach((docSnap) => {
         const item = docSnap.data() as Complaint;
-        if (!item || typeof item !== 'object' || !item.id) return;
+        if (!item || typeof item !== 'object' || !item.id) {
+          deleteDoc(docSnap.ref).catch(() => {});
+          return;
+        }
+
+        // Permanently ignore & hard-delete any legacy test complaint from Firestore
+        if (isLegacyTestComplaint(item.id, item.createdAt) || isLegacyTestComplaint(docSnap.id, item.createdAt)) {
+          deleteDoc(docSnap.ref).catch(() => {});
+          return;
+        }
 
         const lowerId = item.id.toLowerCase();
-        if (deletedIds.includes(lowerId)) return;
-        if ((item as any).isDeleted === true || (item as any).status === 'DELETED') return;
+        const lowerDocId = docSnap.id.toLowerCase();
 
-        if (purgedAt > 0 && item.createdAt) {
+        // Check if deleted locally or in cloud
+        if (allDeletedIds.includes(lowerId) || allDeletedIds.includes(lowerDocId)) {
+          deleteDoc(docSnap.ref).catch(() => {});
+          return;
+        }
+        if ((item as any).isDeleted === true || (item as any).status === 'DELETED') {
+          deleteDoc(docSnap.ref).catch(() => {});
+          return;
+        }
+
+        // Check if created before effective purgedAt timestamp
+        if (effectivePurgedAt > 0 && item.createdAt) {
           const cTime = new Date(item.createdAt).getTime();
-          if (!isNaN(cTime) && cTime <= purgedAt) return;
+          if (!isNaN(cTime) && cTime <= effectivePurgedAt) {
+            deleteDoc(docSnap.ref).catch(() => {});
+            return;
+          }
         }
 
         list.push({
@@ -151,13 +235,38 @@ export const saveComplaintToFirebase = async (complaint: Complaint): Promise<voi
 };
 
 /**
- * Delete a complaint from Firebase Cloud Firestore
+ * Delete a complaint from Firebase Cloud Firestore and sync deletion globally across all devices
  */
 export const deleteComplaintFromFirebase = async (complaintId: string): Promise<void> => {
   try {
-    await deleteDoc(doc(db, 'complaints', complaintId));
-    if (complaintId !== complaintId.toLowerCase()) {
-      await deleteDoc(doc(db, 'complaints', complaintId.toLowerCase()));
+    const lowerId = complaintId.toLowerCase();
+
+    // 1. Write to cloud deleted IDs list so all devices instantly blacklist it
+    await setDoc(doc(db, 'system', 'deletions'), {
+      ids: arrayUnion(complaintId, lowerId)
+    }, { merge: true }).catch(() => {});
+
+    // 2. Mark doc as DELETED in case deleteDoc takes time
+    await setDoc(doc(db, 'complaints', complaintId), { isDeleted: true, status: 'DELETED' }, { merge: true }).catch(() => {});
+    await setDoc(doc(db, 'complaints', lowerId), { isDeleted: true, status: 'DELETED' }, { merge: true }).catch(() => {});
+
+    // 3. Delete docs by ID
+    await deleteDoc(doc(db, 'complaints', complaintId)).catch(() => {});
+    if (complaintId !== lowerId) {
+      await deleteDoc(doc(db, 'complaints', lowerId)).catch(() => {});
+    }
+
+    // 4. Query all docs in complaints collection matching this ID
+    const snap = await getDocs(collection(db, 'complaints'));
+    const matches: Promise<void>[] = [];
+    snap.forEach((d) => {
+      const data = d.data();
+      if (d.id.toLowerCase() === lowerId || (data && data.id && data.id.toLowerCase() === lowerId)) {
+        matches.push(deleteDoc(d.ref));
+      }
+    });
+    if (matches.length > 0) {
+      await Promise.all(matches);
     }
   } catch (err) {
     console.warn('Could not delete from Firebase:', err);
@@ -165,14 +274,21 @@ export const deleteComplaintFromFirebase = async (complaintId: string): Promise<
 };
 
 /**
- * Permanently delete ALL complaints from Firebase Cloud Firestore (Clear all test data)
+ * Permanently delete ALL complaints from Firebase Cloud Firestore (Clear all test data across all devices)
  */
 export const deleteAllComplaintsFromFirebase = async (): Promise<void> => {
   try {
+    const now = Date.now();
+
+    // 1. Write purgedAt to Cloud Firestore system/purged so all devices know data was wiped
+    await setDoc(doc(db, 'system', 'purged'), { purgedAt: now }, { merge: true });
+    await setDoc(doc(db, 'system', 'deletions'), { ids: [] }, { merge: true });
+
+    // 2. Delete ALL documents in complaints collection
     const querySnapshot = await getDocs(collection(db, 'complaints'));
     const deletePromises = querySnapshot.docs.map((docSnap) => deleteDoc(doc(db, 'complaints', docSnap.id)));
     await Promise.all(deletePromises);
-    console.log('All complaints deleted permanently from Firebase Firestore.');
+    console.log('All complaints deleted permanently from Firebase Cloud Firestore.');
   } catch (err) {
     console.warn('Could not wipe all complaints from Firebase:', err);
   }
