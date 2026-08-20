@@ -2,7 +2,7 @@ import React from 'react';
 import type { BusinessSettings } from '../../types';
 import { 
   Wrench, Search, ShieldCheck, Clock, Award, Phone, Zap, 
-  ArrowRight 
+  ArrowRight, Sparkles, Code, ExternalLink 
 } from 'lucide-react';
 
 interface CustomerHomeProps {
@@ -233,6 +233,158 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ settings, onNavigate
           ))}
         </div>
       </div>
+
+      {/* Full Developer Showcase Card with Scroll Reveal Animation */}
+      <section 
+        className="dev-card-scroll-appear"
+        style={{
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
+          borderRadius: '24px',
+          padding: '2.5rem 2rem',
+          color: '#ffffff',
+          boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.4), 0 0 30px rgba(59, 130, 246, 0.25)',
+          border: '1px solid rgba(99, 102, 241, 0.3)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          gap: '1.5rem',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Decorative background radial glow */}
+        <div style={{ position: 'absolute', top: '-50px', left: '50%', transform: 'translateX(-50%)', width: '350px', height: '350px', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, rgba(0,0,0,0) 70%)', pointerEvents: 'none' }} />
+
+        {/* Enlarged Developer Profile Photo */}
+        <div style={{ position: 'relative', margin: '0 auto', zIndex: 1 }}>
+          <div 
+            style={{ 
+              width: '130px', 
+              height: '130px', 
+              borderRadius: '50%', 
+              padding: '4px',
+              background: 'linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899)',
+              boxShadow: '0 0 35px rgba(99, 102, 241, 0.6), 0 0 15px rgba(236, 72, 153, 0.4)',
+              animation: 'pulseGlow 3s infinite alternate'
+            }}
+          >
+            <img 
+              src="/profile.jpg" 
+              alt="Mustansir Murtaza Sanawadwala - Lead Web Developer" 
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                borderRadius: '50%', 
+                objectFit: 'cover',
+                border: '3px solid #0f172a'
+              }}
+            />
+          </div>
+          
+          <div style={{ position: 'absolute', bottom: '5px', right: '5px', backgroundColor: '#2563eb', color: '#ffffff', padding: '6px', borderRadius: '50%', border: '2px solid #0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Sparkles size={16} />
+          </div>
+        </div>
+
+        {/* Developer Info */}
+        <div style={{ maxWidth: '680px', zIndex: 1 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.9rem', backgroundColor: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', borderRadius: '999px', fontSize: '0.825rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', border: '1px solid rgba(129, 140, 248, 0.3)', marginBottom: '0.75rem' }}>
+            <Code size={14} /> Lead Full-Stack Developer & Software Architect
+          </div>
+
+          <h2 style={{ fontSize: '2.1rem', fontWeight: 900, color: '#ffffff', marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>
+            Mustansir Murtaza Sanawadwala
+          </h2>
+
+          <p style={{ fontSize: '1rem', color: '#cbd5e1', lineHeight: 1.6, marginBottom: '1.25rem' }}>
+            Creator & Architect of the <strong>Washing Machine Care</strong> web platform (<a href="https://washingmachinecare.shop" style={{ color: '#60a5fa', textDecoration: 'underline' }}>washingmachinecare.shop</a>). Engineered with ultra-fast PWA performance, real-time Firebase sync & instant audio dispatch alerts.
+          </p>
+
+          {/* Tech Stack Chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem', marginBottom: '1.75rem' }}>
+            {['React', 'TypeScript', 'Firebase Cloud', 'PWA Engine', 'Web Audio API', 'SEO Engineered'].map(tech => (
+              <span key={tech} style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', color: '#93c5fd', fontSize: '0.78rem', fontWeight: 700, padding: '0.3rem 0.75rem', borderRadius: '6px', border: '1px solid rgba(147, 197, 253, 0.2)' }}>
+                {tech}
+              </span>
+            ))}
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.85rem' }}>
+            <a 
+              href="https://mustansir.vercel.app/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="btn"
+              style={{
+                backgroundColor: '#2563eb',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                padding: '0.75rem 1.6rem',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 4px 20px rgba(37, 99, 235, 0.5)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Visit Developer Portfolio <ExternalLink size={16} />
+            </a>
+
+            <a 
+              href="https://mustansir.vercel.app/#contact" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="btn"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                padding: '0.75rem 1.4rem',
+                borderRadius: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              Contact Developer ✉️
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Animation Styles */}
+      <style>{`
+        @keyframes devCardSlideUp {
+          0% {
+            opacity: 0;
+            transform: translateY(35px) scale(0.96);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        @keyframes pulseGlow {
+          0% {
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.5), 0 0 10px rgba(236, 72, 153, 0.3);
+          }
+          100% {
+            box-shadow: 0 0 45px rgba(99, 102, 241, 0.85), 0 0 20px rgba(236, 72, 153, 0.6);
+          }
+        }
+
+        .dev-card-scroll-appear {
+          animation: devCardSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
 
     </div>
   );

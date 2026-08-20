@@ -110,21 +110,31 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            <div style={{ position: 'relative' }}>
-              <img 
-                src="/profile.jpg" 
-                alt="Mustansir Murtaza Sanawadwala" 
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div 
                 style={{ 
-                  width: '72px', 
-                  height: '72px', 
+                  width: '100px', 
+                  height: '100px', 
                   borderRadius: '50%', 
-                  objectFit: 'cover', 
-                  border: '3px solid #3b82f6',
-                  boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)'
+                  padding: '3px',
+                  background: 'linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899)',
+                  boxShadow: '0 0 25px rgba(59, 130, 246, 0.6)'
                 }}
-              />
-              <div style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: '#2563eb', color: '#ffffff', padding: '3px', borderRadius: '50%', border: '2px solid #0f172a' }}>
-                <Sparkles size={12} />
+              >
+                <img 
+                  src="/profile.jpg" 
+                  alt="Mustansir Murtaza Sanawadwala" 
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    borderRadius: '50%', 
+                    objectFit: 'cover', 
+                    border: '2px solid #0f172a'
+                  }}
+                />
+              </div>
+              <div style={{ position: 'absolute', bottom: '2px', right: '2px', backgroundColor: '#2563eb', color: '#ffffff', padding: '5px', borderRadius: '50%', border: '2px solid #0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Sparkles size={14} />
               </div>
             </div>
 
