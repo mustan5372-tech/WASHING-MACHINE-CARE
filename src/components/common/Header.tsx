@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { UserSession } from '../../types';
-import { Menu, X, Shield, User, Phone, Search, PlusCircle, LogOut } from 'lucide-react';
+import { Menu, X, Shield, User, Phone, Search, PlusCircle, LogOut, Crown } from 'lucide-react';
 import { AdminLoginModal } from '../admin/AdminLoginModal';
 
 interface HeaderProps {
@@ -130,13 +130,15 @@ export const Header: React.FC<HeaderProps> = ({
               className="btn btn-sm btn-secondary"
               style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', border: '1px solid #cbd5e1', borderRadius: '20px', padding: '0.35rem 0.85rem' }}
             >
-              {session.role === 'admin' || session.role === 'staff' ? (
+              {session.role === 'super_admin' ? (
+                <Crown size={14} style={{ color: '#d97706' }} />
+              ) : session.role === 'admin' || session.role === 'staff' ? (
                 <Shield size={14} style={{ color: '#1d4ed8' }} />
               ) : (
                 <User size={14} style={{ color: '#059669' }} />
               )}
               <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                {session.role === 'admin' ? 'Admin Portal' : session.role === 'staff' ? 'Staff View' : 'Customer View'}
+                {session.role === 'super_admin' ? '👑 Super Admin' : session.role === 'admin' ? 'Admin Portal' : session.role === 'staff' ? 'Staff View' : 'Customer View'}
               </span>
             </button>
 

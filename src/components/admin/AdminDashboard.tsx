@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import type { Complaint, BusinessSettings } from '../../types';
+import type { Complaint, BusinessSettings, UserSession } from '../../types';
 import { exportComplaintsToCsv } from '../../utils/exportCsv';
 import { StatusBadge } from '../common/StatusBadge';
 import { AddAdminModal } from './AddAdminModal';
+import { AdminControlModal } from './AdminControlModal';
 import { 
   AlertCircle, Wrench, CheckCircle2, Clock, 
   Plus, Search, Download, UserPlus, Trash2, Volume2,
-  LayoutGrid, List, Phone, MapPin, Calendar, RotateCw
+  LayoutGrid, List, Phone, MapPin, Calendar, RotateCw, Crown
 } from 'lucide-react';
 import { deleteComplaintFromFirebase, deleteAllComplaintsFromFirebase, playLoudInWebsiteBeep } from '../../services/firebase';
 import { deleteComplaintLocal, purgeAllComplaintsLocal, addAuditLog } from '../../services/storage';
@@ -15,6 +16,7 @@ interface AdminDashboardProps {
   complaints: Complaint[];
   technicians?: any[];
   settings: BusinessSettings;
+  session?: UserSession;
   onOpenComplaintDetail: (complaint: Complaint) => void;
   onOpenNewComplaintModal: () => void;
   onNavigate: (tab: string) => void;
@@ -24,10 +26,12 @@ interface AdminDashboardProps {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   complaints,
   settings,
+  session,
   onOpenComplaintDetail,
   onOpenNewComplaintModal,
   onDeleteComplaint
 }) => {
+  const [isControlModalOpen, setIsControlModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [isAddAdminOpen, setIsAddAdminOpen] = useState<boolean>(false);
@@ -126,9 +130,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <Plus size={18} /> + New Complaint
           </button>
 
-          <button onClick={() => setIsAddAdminOpen(true)} className="btn btn-secondary" style={{ border: '1px solid #cbd5e1' }}>
-            <UserPlus size={18} /> Add Admin
-          </button>
+          {session?.role === 'super_admin' || (session?.email && session.email.includes('9238728746')) ? (
+            <button 
+              onClick={() => setIsControlModalOpen(true)} 
+              className="btn btn-primary" 
+              style={{ backgroundColor: '#d97706', color: '#ffffff', fontWeight: 800, border: '1px solid #b45309', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+              title="Super Admin Control Panel (Manage Admins, Passwords, Roles)"
+            >
+              <Crown size={18} /> 👑 Admin Control Panel
+            </button>
+          ) : (
+            <button onClick={() => setIsAddAdminOpen(true)} className="btn btn-secondary" style={{ border: '1px solid #cbd5e1' }}>
+              <UserPlus size={18} /> Add Admin
+            </button>
+          )}
 
           <button onClick={() => exportComplaintsToCsv(complaints)} className="btn btn-secondary" style={{ border: '1px solid #cbd5e1' }}>
             <Download size={18} /> Export CSV
@@ -470,6 +485,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <AddAdminModal 
         isOpen={isAddAdminOpen}
         onClose={() => setIsAddAdminOpen(false)}
+      />
+
+      {/* Super Admin Control Modal */}
+      <AdminControlModal
+        isOpen={isControlModalOpen}
+        onClose={() => setIsControlModalOpen(false)}
+        currentUserMobile={session?.email}
       />
 
       {/* Hover effects */}

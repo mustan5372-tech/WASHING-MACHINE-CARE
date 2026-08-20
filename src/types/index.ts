@@ -1,4 +1,4 @@
-export type Role = 'customer' | 'admin' | 'staff';
+export type Role = 'super_admin' | 'admin' | 'staff' | 'customer';
 
 export type MachineType = 
   | 'Fully Automatic Top Load'

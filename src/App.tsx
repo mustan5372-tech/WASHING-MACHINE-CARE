@@ -294,7 +294,7 @@ export function App() {
     setComplaints(prev => prev.filter(c => c.id.toLowerCase() !== id.toLowerCase()));
   };
 
-  const isAdminOrStaff = session.role === 'admin' || session.role === 'staff';
+  const isAdminOrStaff = session.role === 'super_admin' || session.role === 'admin' || session.role === 'staff';
 
   return (
     <div className="app-container">
@@ -428,6 +428,7 @@ export function App() {
               <AdminDashboard 
                 complaints={complaints}
                 settings={settings}
+                session={session}
                 onOpenComplaintDetail={(c) => setSelectedComplaintDetail(c)}
                 onOpenNewComplaintModal={() => setShowNewComplaintModal(true)}
                 onNavigate={handleNavigate}
