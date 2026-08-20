@@ -232,11 +232,11 @@ export const getSettings = (): BusinessSettings => {
     }
     const parsed: BusinessSettings = JSON.parse(raw);
     let updated = false;
-    if (!parsed.phone || parsed.phone.includes('98765')) {
+    if (parsed.phone !== '+91 9926064529') {
       parsed.phone = '+91 9926064529';
       updated = true;
     }
-    if (!parsed.secondaryPhone || parsed.secondaryPhone.includes('91234') || parsed.secondaryPhone.includes('98765')) {
+    if (parsed.secondaryPhone !== '+91 9826247802') {
       parsed.secondaryPhone = '+91 9826247802';
       updated = true;
     }

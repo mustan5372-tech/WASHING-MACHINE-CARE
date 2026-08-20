@@ -22,8 +22,8 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ settings, onNavigate
     { name: 'Error Code', desc: 'Display panel showing error code (OE, 4E, etc.)' }
   ];
 
-  const primaryPhone = settings.phone && !settings.phone.includes('98765') ? settings.phone : '+91 9926064529';
-  const secondaryPhone = settings.secondaryPhone && !settings.secondaryPhone.includes('91234') && !settings.secondaryPhone.includes('98765') ? settings.secondaryPhone : '+91 9826247802';
+  const primaryPhone = (settings.phone && settings.phone.includes('99260')) ? settings.phone : '+91 9926064529';
+  const secondaryPhone = (settings.secondaryPhone && settings.secondaryPhone.includes('98262')) ? settings.secondaryPhone : '+91 9826247802';
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
