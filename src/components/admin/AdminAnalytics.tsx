@@ -27,14 +27,16 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ complaints }) =>
   // Brand Breakdown Stats
   const brandCounts: Record<string, number> = {};
   complaints.forEach(c => {
-    const b = c.machine.brand;
+    if (!c) return;
+    const b = c.machine?.brand || 'Washing Machine';
     brandCounts[b] = (brandCounts[b] || 0) + 1;
   });
 
   // Problem Breakdown Stats
   const problemCounts: Record<string, number> = {};
   complaints.forEach(c => {
-    c.problem.selectedProblems.forEach(p => {
+    if (!c) return;
+    (c.problem?.selectedProblems || []).forEach(p => {
       problemCounts[p] = (problemCounts[p] || 0) + 1;
     });
   });

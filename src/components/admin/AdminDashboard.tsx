@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { Complaint, BusinessSettings } from '../../types';
 import { exportComplaintsToCsv } from '../../utils/exportCsv';
 import { StatusBadge } from '../common/StatusBadge';
 import { AddAdminModal } from './AddAdminModal';
 import { 
   AlertCircle, Wrench, CheckCircle2, Clock, 
-  Plus, Search, Download, UserPlus, Trash2, Bell 
+  Plus, Search, Download, UserPlus, Trash2, Volume2,
+  LayoutGrid, List, Phone, MapPin, Calendar
 } from 'lucide-react';
-import { deleteComplaintFromFirebase, registerFcmNotifications, triggerTestPushNotification } from '../../services/firebase';
-import { deleteComplaintLocal, addAuditLog } from '../../services/storage';
+import { deleteComplaintFromFirebase, deleteAllComplaintsFromFirebase, playLoudInWebsiteBeep } from '../../services/firebase';
+import { deleteComplaintLocal, purgeAllComplaintsLocal, addAuditLog } from '../../services/storage';
 
 interface AdminDashboardProps {
   complaints: Complaint[];
@@ -30,31 +31,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [isAddAdminOpen, setIsAddAdminOpen] = useState<boolean>(false);
-  const [notifState, setNotifState] = useState<NotificationPermission>(
-    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'denied'
-  );
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
+    return (localStorage.getItem('wmc_admin_view_mode') as 'grid' | 'table') || 'grid';
+  });
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setNotifState(Notification.permission);
-      if (Notification.permission === 'granted') {
-        registerFcmNotifications('Admin');
-      }
-    }
-  }, []);
+  const handleToggleViewMode = (mode: 'grid' | 'table') => {
+    setViewMode(mode);
+    localStorage.setItem('wmc_admin_view_mode', mode);
+  };
 
-  const handleRequestNotification = async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      setNotifState(permission);
-      if (permission === 'granted') {
-        await registerFcmNotifications('Admin');
-        alert('✅ Firebase Cloud Messaging (FCM) Enabled! You will receive instant background push alerts when a customer books a washing machine repair.');
-      } else if (permission === 'denied') {
-        alert('⚠️ Notifications blocked in your browser settings. Please allow notifications in your browser site settings.');
-      }
-    } else {
-      alert('Browser does not support desktop push notifications.');
+  const handleTestLoudBeep = () => {
+    playLoudInWebsiteBeep();
+    alert('🔊 Loud Beep Audio Chime Triggered!');
+  };
+
+  const handlePurgeAllComplaints = async () => {
+    if (window.confirm('⚠️ ARE YOU SURE YOU WANT TO PERMANENTLY DELETE ALL TEST COMPLAINTS?\n\nThis will wipe all existing test complaints from cloud database and local cache. This action CANNOT be undone!')) {
+      purgeAllComplaintsLocal();
+      await deleteAllComplaintsFromFirebase();
+      addAuditLog('Admin', 'PURGE_ALL_COMPLAINTS', 'Permanently wiped all test complaints');
+      alert('✅ All test complaints have been permanently deleted from cloud & local storage.');
+      window.location.reload();
     }
   };
 
@@ -66,12 +63,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Filtered Complaints List
   const filteredComplaints = complaints.filter(c => {
+    if (!c || !c.id) return false;
     const matchesSearch = 
-      c.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.customer.mobile.includes(searchTerm) ||
-      c.customer.streetArea.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.machine.brand.toLowerCase().includes(searchTerm.toLowerCase());
+      (c.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.customer?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.customer?.mobile || '').includes(searchTerm) ||
+      (c.customer?.streetArea || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.machine?.brand || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
 
@@ -107,25 +105,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           <button 
-            onClick={handleRequestNotification}
+            onClick={handleTestLoudBeep}
             className="btn btn-secondary btn-sm"
-            style={{ 
-              backgroundColor: notifState === 'granted' ? '#f0fdf4' : '#eff6ff', 
-              color: notifState === 'granted' ? '#15803d' : '#1d4ed8', 
-              border: `1px solid ${notifState === 'granted' ? '#86efac' : '#bfdbfe'}`,
-              fontWeight: 700
-            }}
+            style={{ backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', fontWeight: 700 }}
+            title="Test Loud In-Website Audio Chime Beep"
           >
-            <Bell size={16} /> {notifState === 'granted' ? 'Notifications Active 🔔' : 'Enable Push Notifications 🔔'}
-          </button>
-
-          <button 
-            onClick={() => triggerTestPushNotification()}
-            className="btn btn-secondary btn-sm"
-            style={{ backgroundColor: '#fff7ed', color: '#c2410c', border: '1px solid #ffedd5', fontWeight: 700 }}
-            title="Test Mobile Push Notification"
-          >
-            📣 Test Push Alert
+            <Volume2 size={16} /> Test Loud Beep Alert 🔊
           </button>
 
           <button onClick={onOpenNewComplaintModal} className="btn btn-primary" style={{ backgroundColor: '#1d4ed8' }}>
@@ -139,6 +124,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <button onClick={() => exportComplaintsToCsv(complaints)} className="btn btn-secondary" style={{ border: '1px solid #cbd5e1' }}>
             <Download size={18} /> Export CSV
           </button>
+
+          {complaints.length > 0 && (
+            <button 
+              onClick={handlePurgeAllComplaints} 
+              className="btn btn-secondary" 
+              style={{ border: '1px solid #fca5a5', color: '#dc2626', backgroundColor: '#fef2f2', fontWeight: 700 }}
+              title="Delete all test complaints from database"
+            >
+              <Trash2 size={16} /> Wipe Test Complaints
+            </button>
+          )}
         </div>
       </div>
 
@@ -193,7 +189,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
+      {/* Filter & Search Bar + View Toggle */}
       <div className="card" style={{ padding: '1.25rem' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
           
@@ -209,7 +205,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
             {['ALL', 'New Complaint', 'Inspection', 'Repair In Progress', 'Repair Completed', 'Paid'].map(st => (
               <button
                 key={st}
@@ -220,34 +216,184 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {st === 'ALL' ? 'All Status' : st}
               </button>
             ))}
+
+            {/* Layout Toggle (Cards vs Table) */}
+            <div style={{ display: 'flex', backgroundColor: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid #cbd5e1', marginLeft: '0.25rem' }}>
+              <button
+                onClick={() => handleToggleViewMode('grid')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: viewMode === 'grid' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'grid' ? '#1d4ed8' : '#64748b',
+                  fontWeight: viewMode === 'grid' ? 700 : 500,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                }}
+                title="Cards View Layout"
+              >
+                <LayoutGrid size={15} /> Cards
+              </button>
+
+              <button
+                onClick={() => handleToggleViewMode('table')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: viewMode === 'table' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'table' ? '#1d4ed8' : '#64748b',
+                  fontWeight: viewMode === 'table' ? 700 : 500,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  boxShadow: viewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                }}
+                title="Table View Layout"
+              >
+                <List size={15} /> Table
+              </button>
+            </div>
+
           </div>
 
         </div>
       </div>
 
-      {/* Complaints Table */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase' }}>
-                <th style={{ padding: '1rem' }}>ID / Date</th>
-                <th style={{ padding: '1rem' }}>Customer Info</th>
-                <th style={{ padding: '1rem' }}>Machine Details</th>
-                <th style={{ padding: '1rem' }}>Issue Description</th>
-                <th style={{ padding: '1rem' }}>Status</th>
-                <th style={{ padding: '1rem', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredComplaints.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-                    No complaints found matching criteria.
-                  </td>
+      {/* Complaints Display Area */}
+      {filteredComplaints.length === 0 ? (
+        <div className="card" style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+          No complaints found matching criteria.
+        </div>
+      ) : viewMode === 'grid' ? (
+        /* CARD VIEW LAYOUT */
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+          {filteredComplaints.map(c => (
+            <div 
+              key={c.id}
+              onClick={() => onOpenComplaintDetail(c)}
+              className="card complaint-card-hover"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                padding: '1.25rem',
+                borderLeft: c.status === 'New Complaint' ? '5px solid #ef4444' : c.status === 'Repair Completed' ? '5px solid #10b981' : '5px solid #3b82f6',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                gap: '1rem'
+              }}
+            >
+              {/* Card Header: ID & Status */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <div>
+                    <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>{c.id}</span>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.1rem' }}>
+                      <Calendar size={12} /> {new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </div>
+                  </div>
+                  <StatusBadge status={c.status} />
+                </div>
+
+                {/* Customer Details */}
+                <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '0.75rem' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>{c.customer.name}</div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#2563eb', fontWeight: 700, fontSize: '0.875rem', margin: '0.25rem 0' }}>
+                    <Phone size={14} /> {c.customer.mobile}
+                  </div>
+
+                  <div style={{ fontSize: '0.8rem', color: '#475569', display: 'flex', alignItems: 'flex-start', gap: '0.35rem' }}>
+                    <MapPin size={14} style={{ flexShrink: 0, marginTop: '2px', color: '#94a3b8' }} />
+                    <span>{c.customer.streetArea}{c.customer.city ? `, ${c.customer.city}` : ''}</span>
+                  </div>
+                </div>
+
+                {/* Machine & Problem info */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e293b' }}>
+                    🧺 {c.machine.brand} <span style={{ fontWeight: 500, color: '#64748b', fontSize: '0.8rem' }}>({c.machine.type})</span>
+                  </div>
+                  <div style={{ fontSize: '0.825rem', color: '#dc2626', fontWeight: 700, backgroundColor: '#fef2f2', padding: '0.35rem 0.6rem', borderRadius: '6px', border: '1px solid #fecaca', display: 'inline-block' }}>
+                    ⚠️ {c.problem.selectedProblems.join(', ')}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons: Phone Call + WhatsApp + View + Delete */}
+              <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <a 
+                    href={`tel:${c.customer.mobile}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="btn btn-sm"
+                    style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontWeight: 700, padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.78rem', textDecoration: 'none' }}
+                  >
+                    📞 Call
+                  </a>
+                  <a 
+                    href={`https://wa.me/91${c.customer.mobile.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="btn btn-sm"
+                    style={{ backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', fontWeight: 700, padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.78rem', textDecoration: 'none' }}
+                  >
+                    💬 WhatsApp
+                  </a>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenComplaintDetail(c);
+                    }}
+                    className="btn btn-sm btn-primary"
+                    style={{ fontSize: '0.8rem', fontWeight: 700, padding: '0.4rem 0.75rem' }}
+                  >
+                    Details
+                  </button>
+
+                  <button 
+                    onClick={(e) => handleDeleteComplaint(e, c.id)}
+                    className="btn btn-sm"
+                    title="Delete Complaint"
+                    style={{ color: '#dc2626', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', padding: '0.45rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* TABLE VIEW LAYOUT */
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase' }}>
+                  <th style={{ padding: '1rem' }}>ID / Date</th>
+                  <th style={{ padding: '1rem' }}>Customer Info</th>
+                  <th style={{ padding: '1rem' }}>Machine Details</th>
+                  <th style={{ padding: '1rem' }}>Issue Description</th>
+                  <th style={{ padding: '1rem' }}>Status</th>
+                  <th style={{ padding: '1rem', textAlign: 'right' }}>Actions</th>
                 </tr>
-              ) : (
-                filteredComplaints.map(c => (
+              </thead>
+              <tbody>
+                {filteredComplaints.map(c => (
                   <tr 
                     key={c.id}
                     onClick={() => onOpenComplaintDetail(c)}
@@ -304,12 +450,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Add Admin Modal */}
       <AddAdminModal 
@@ -322,7 +468,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         .table-row-hover:hover {
           background-color: #f8fafc !important;
         }
+        .complaint-card-hover:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 20px -5px rgba(0,0,0,0.1) !important;
+        }
       `}</style>
     </div>
   );
 };
+

@@ -55,6 +55,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
                   📞 Customer Support
                 </button>
               </li>
+
               <li>
                 <button onClick={() => onNavigate('admin-dashboard')} style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}>
                   <Shield size={14} /> Shop Owner / Admin Login

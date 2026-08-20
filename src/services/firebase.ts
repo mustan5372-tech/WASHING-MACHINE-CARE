@@ -17,10 +17,9 @@ import {
   onAuthStateChanged,
   type User 
 } from 'firebase/auth';
-import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
-import type { Complaint } from '../types';
+import type { Complaint, ProblemType } from '../types';
 
-// Live Firebase Web App configuration from your Firebase Console project:
+// Live Firebase Web App configuration:
 // Project: washing-machine-care-727eb
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyD4BW_siJnlXbWmN7IdP-0kUy7rQeD0A80",
@@ -38,67 +37,43 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 
 /**
- * Register Firebase Cloud Messaging (FCM) for Admin Web Push Notifications
+ * Play a high-volume multi-tone loud alert chime using Web Audio API when website is open
  */
-export const registerFcmNotifications = async (adminName: string): Promise<string | null> => {
+export const playLoudInWebsiteBeep = () => {
   try {
-    const supported = await isSupported();
-    if (!supported) {
-      console.warn('Firebase Messaging not supported on this browser.');
-      return null;
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
     }
 
-    // Register Background Service Worker
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    console.log('Firebase Service Worker registered successfully:', registration);
+    const tones = [
+      { freq: 880, start: 0, duration: 0.18 },
+      { freq: 1108.73, start: 0.20, duration: 0.18 },
+      { freq: 1318.51, start: 0.40, duration: 0.20 },
+      { freq: 1760, start: 0.65, duration: 0.35 }
+    ];
 
-    const messaging = getMessaging(app);
-
-    // Request Notification Permission
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      console.warn('Notification permission not granted by admin.');
-      return null;
-    }
-
-    // Retrieve FCM Device Token
-    const currentToken = await getToken(messaging, {
-      serviceWorkerRegistration: registration
+    tones.forEach(t => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(t.freq, ctx.currentTime + t.start);
+      gain.gain.setValueAtTime(0.85, ctx.currentTime + t.start);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t.start + t.duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + t.start);
+      osc.stop(ctx.currentTime + t.start + t.duration);
     });
-
-    if (currentToken) {
-      console.log('FCM Token received:', currentToken);
-      // Save FCM Token to Firestore for broadcasting
-      await setDoc(doc(db, 'fcm_tokens', currentToken.slice(0, 30)), {
-        token: currentToken,
-        adminName,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-
-      // Listen to Foreground Push Notifications
-      onMessage(messaging, (payload) => {
-        console.log('Foreground FCM Message received:', payload);
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification(payload.notification?.title || '🚨 New Service Booking!', {
-            body: payload.notification?.body || 'A new complaint has been registered.',
-            icon: '/logo.png'
-          });
-        }
-      });
-
-      return currentToken;
-    } else {
-      console.warn('No registration token available. Request permission to generate one.');
-      return null;
-    }
-  } catch (err) {
-    console.error('An error occurred while retrieving FCM token:', err);
-    return null;
+  } catch (e) {
+    console.warn('Audio play error:', e);
   }
 };
 
 /**
- * Real-time listener for Firestore Complaints
+ * Real-time listener for Firestore Complaints (Syncs across all logged-in accounts instantly)
  */
 export const listenToComplaints = (onUpdate: (complaints: Complaint[]) => void) => {
   try {
@@ -107,12 +82,52 @@ export const listenToComplaints = (onUpdate: (complaints: Complaint[]) => void) 
       const deletedRaw = localStorage.getItem('wmc_deleted_ids_v1');
       const deletedIds: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
 
+      const purgedRaw = localStorage.getItem('wmc_purged_at_v1');
+      const purgedAt = purgedRaw ? parseInt(purgedRaw, 10) : 0;
+
       const list: Complaint[] = [];
       snapshot.forEach((docSnap) => {
         const item = docSnap.data() as Complaint;
-        if (item && item.id && !deletedIds.includes(item.id.toLowerCase())) {
-          list.push(item);
+        if (!item || typeof item !== 'object' || !item.id) return;
+
+        const lowerId = item.id.toLowerCase();
+        if (deletedIds.includes(lowerId)) return;
+        if ((item as any).isDeleted === true || (item as any).status === 'DELETED') return;
+
+        if (purgedAt > 0 && item.createdAt) {
+          const cTime = new Date(item.createdAt).getTime();
+          if (!isNaN(cTime) && cTime <= purgedAt) return;
         }
+
+        list.push({
+          ...item,
+          customer: {
+            name: item.customer?.name || 'Customer',
+            mobile: item.customer?.mobile || '',
+            whatsapp: item.customer?.whatsapp || item.customer?.mobile || '',
+            whatsappSameAsMobile: item.customer?.whatsappSameAsMobile ?? true,
+            houseNo: item.customer?.houseNo || '',
+            streetArea: item.customer?.streetArea || '',
+            landmark: item.customer?.landmark || '',
+            city: item.customer?.city || 'Indore',
+            pincode: item.customer?.pincode || '452009'
+          },
+          machine: {
+            brand: item.machine?.brand || 'Washing Machine',
+            otherBrand: item.machine?.otherBrand || '',
+            type: item.machine?.type || 'Fully Automatic Top Load',
+            age: item.machine?.age || '1–3 years'
+          },
+          problem: {
+            selectedProblems: Array.isArray(item.problem?.selectedProblems) && item.problem.selectedProblems.length > 0 
+              ? item.problem.selectedProblems 
+              : ['Other Problem' as ProblemType],
+            errorCode: item.problem?.errorCode || '',
+            additionalDetails: item.problem?.additionalDetails || ''
+          },
+          status: item.status || 'New Complaint',
+          createdAt: item.createdAt || new Date().toISOString()
+        });
       });
       onUpdate(list);
     }, (err) => {
@@ -125,138 +140,11 @@ export const listenToComplaints = (onUpdate: (complaints: Complaint[]) => void) 
 };
 
 /**
- * Trigger an instant test mobile push notification
- */
-export const triggerTestPushNotification = async (): Promise<boolean> => {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
-    alert('Push notifications are not supported on this browser.');
-    return false;
-  }
-
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') {
-    alert('Notification permission denied. Please allow notifications in your mobile browser settings.');
-    return false;
-  }
-
-  if ('serviceWorker' in navigator) {
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification('🚨 Mobile Push Notifications Active!', {
-        body: 'Washing Machine Care admin alerts are set up successfully on your device.',
-        icon: '/logo.png',
-        badge: '/logo.png',
-        vibrate: [300, 100, 300, 100, 300],
-        tag: 'wmc-test-notif',
-        requireInteraction: true,
-        data: { url: '/admin' }
-      } as any);
-      return true;
-    } catch (e) {
-      console.warn('Service worker showNotification fallback:', e);
-    }
-  }
-  
-  new Notification('🚨 Mobile Push Notifications Active!', {
-    body: 'Washing Machine Care admin alerts are set up successfully on your device.',
-    icon: '/logo.png'
-  });
-  return true;
-};
-
-/**
- * Broadcast Web Push to all registered Admin FCM tokens when app/screen is closed
- */
-export const sendFcmPushToAdmins = async (complaint: Complaint): Promise<void> => {
-  try {
-    const tokensSnap = await getDocs(collection(db, 'fcm_tokens'));
-    tokensSnap.forEach((docSnap) => {
-      const data = docSnap.data();
-      if (data && data.token) {
-        fetch('https://fcm.googleapis.com/fcm/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            to: data.token,
-            notification: {
-              title: `🚨 New Repair Booking: ${complaint.id}`,
-              body: `${complaint.customer.name} (${complaint.customer.mobile}) - ${complaint.machine.brand} (${complaint.problem.selectedProblems.join(', ')})`,
-              icon: '/logo.png',
-              click_action: 'https://washingmachinecare.shop/admin'
-            },
-            data: {
-              complaintId: complaint.id,
-              url: '/admin'
-            }
-          })
-        }).catch(err => console.warn('FCM push send warn:', err));
-      }
-    });
-  } catch (err) {
-    console.warn('Could not query FCM tokens:', err);
-  }
-};
-
-/**
- * Send instant Telegram lock-screen notification to Admin Telegram Channel/Bot
- */
-export const sendTelegramAdminAlert = async (complaint: Complaint, botToken?: string, chatId?: string): Promise<void> => {
-  const token = botToken || '7891234567:AAExamplePlaceholder'; // Replaceable in Admin Settings
-  const chat = chatId || '';
-  if (!chat) return;
-
-  try {
-    const text = encodeURIComponent(
-      `🚨 *NEW REPAIR BOOKING RECEIVED!*\n\n` +
-      `📌 *Booking ID:* ${complaint.id}\n` +
-      `👤 *Customer:* ${complaint.customer.name}\n` +
-      `📞 *Mobile:* ${complaint.customer.mobile}\n` +
-      `🧺 *Machine:* ${complaint.machine.brand} (${complaint.machine.type})\n` +
-      `⚠️ *Problem:* ${complaint.problem.selectedProblems.join(', ')}\n` +
-      `📅 *Slot:* ${complaint.visit?.date || 'N/A'} (${complaint.visit?.timeSlot || 'N/A'})\n\n` +
-      `🔗 https://washingmachinecare.shop/admin`
-    );
-
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${text}&parse_mode=Markdown`);
-  } catch (err) {
-    console.warn('Telegram alert failed:', err);
-  }
-};
-
-/**
  * Save / Update single complaint in Firebase Cloud Firestore
  */
 export const saveComplaintToFirebase = async (complaint: Complaint): Promise<void> => {
   try {
     await setDoc(doc(db, 'complaints', complaint.id), complaint, { merge: true });
-    
-    // Broadcast notification queue event in Firestore for background push dispatcher
-    await setDoc(doc(db, 'notification_queue', `notif-${Date.now()}`), {
-      title: `🚨 New Repair Booking: ${complaint.id}`,
-      body: `${complaint.customer.name} (${complaint.customer.mobile}) - ${complaint.machine.brand} (${complaint.problem.selectedProblems.join(', ')})`,
-      complaintId: complaint.id,
-      createdAt: new Date().toISOString()
-    }).catch(() => {});
-
-    // Broadcast FCM Web Push to registered admin devices (works when app is closed)
-    sendFcmPushToAdmins(complaint);
-
-    // Fire mobile OS notification via active service worker if tab is active
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && Notification.permission === 'granted') {
-      navigator.serviceWorker.ready.then(reg => {
-        reg.showNotification(`🚨 New Service Booking: ${complaint.id}`, {
-          body: `${complaint.customer.name} (${complaint.customer.mobile}) - ${complaint.machine.brand}`,
-          icon: '/logo.png',
-          badge: '/logo.png',
-          vibrate: [300, 100, 300, 100, 300],
-          tag: complaint.id,
-          requireInteraction: true,
-          data: { url: '/admin' }
-        } as any);
-      }).catch(() => {});
-    }
   } catch (err) {
     console.warn('Could not save to Firebase, stored in LocalStorage:', err);
   }
@@ -273,6 +161,20 @@ export const deleteComplaintFromFirebase = async (complaintId: string): Promise<
     }
   } catch (err) {
     console.warn('Could not delete from Firebase:', err);
+  }
+};
+
+/**
+ * Permanently delete ALL complaints from Firebase Cloud Firestore (Clear all test data)
+ */
+export const deleteAllComplaintsFromFirebase = async (): Promise<void> => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'complaints'));
+    const deletePromises = querySnapshot.docs.map((docSnap) => deleteDoc(doc(db, 'complaints', docSnap.id)));
+    await Promise.all(deletePromises);
+    console.log('All complaints deleted permanently from Firebase Firestore.');
+  } catch (err) {
+    console.warn('Could not wipe all complaints from Firebase:', err);
   }
 };
 
@@ -306,3 +208,4 @@ export const signOutFirebaseUser = async (): Promise<void> => {
 export const subscribeToAuthChanges = (onUserChange: (user: User | null) => void) => {
   return onAuthStateChanged(auth, onUserChange);
 };
+

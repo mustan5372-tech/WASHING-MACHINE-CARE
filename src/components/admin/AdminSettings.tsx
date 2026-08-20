@@ -125,6 +125,39 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ settings, onUpdate
         </button>
       </div>
 
+      {/* PWA In-Website Loud Sound Alert Panel */}
+      <div className="card" style={{ borderLeft: '4px solid #16a34a', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: '#f0fdf4' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#15803d', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
+              🔊
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#14532d', margin: 0 }}>
+                PWA Real-Time Loud Audio Alerts & Auto-Sync
+              </h3>
+              <p style={{ fontSize: '0.875rem', color: '#166534', margin: '0.2rem 0 0 0' }}>
+                When the PWA website is open, incoming customer bookings trigger a loud multi-frequency audio chime beep and real-time pop-up banner.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button 
+              onClick={async () => {
+                const { playLoudInWebsiteBeep } = await import('../../services/firebase');
+                playLoudInWebsiteBeep();
+                alert('🔊 Loud audio alert chime tested successfully!');
+              }}
+              className="btn btn-primary btn-sm"
+              style={{ backgroundColor: '#15803d', fontWeight: 800 }}
+            >
+              🔊 Test Loud Audio Chime
+            </button>
+          </div>
+        </div>
+      </div>
+
       {savedSuccess && (
         <div style={{ backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '0.85rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
           <Check size={18} /> Settings updated and saved successfully!

@@ -1,17 +1,16 @@
 import React from 'react';
 import type { BusinessSettings } from '../../types';
 import { 
-  Wrench, ShieldCheck, Clock, Phone, Search, 
-  ArrowRight, Award, ThumbsUp, Zap 
+  Wrench, Search, ShieldCheck, Clock, Award, Phone, Zap, 
+  ArrowRight 
 } from 'lucide-react';
-import { PwaInstallPrompt } from '../common/PwaInstallPrompt';
 
 interface CustomerHomeProps {
   settings: BusinessSettings;
   onNavigate: (tab: string) => void;
 }
 
-export const CustomerHome: React.FC<CustomerHomeProps> = ({ onNavigate }) => {
+export const CustomerHome: React.FC<CustomerHomeProps> = ({ settings, onNavigate }) => {
   const brands = ['LG', 'Samsung', 'Whirlpool', 'IFB', 'Bosch', 'Haier', 'Godrej', 'Panasonic', 'Videocon'];
 
   const problems = [
@@ -23,12 +22,15 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ onNavigate }) => {
     { name: 'Error Code', desc: 'Display panel showing error code (OE, 4E, etc.)' }
   ];
 
-  const primaryPhone = "+91 9926064529";
-  const secondaryPhone = "+91 9826247802";
+  const primaryPhone = settings.phone || '+91 98765 43210';
+  const secondaryPhone = settings.whatsapp || '+91 91234 56789';
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
       
+
+
+
       {/* Hero Section */}
       <section 
         style={{ 
@@ -36,20 +38,16 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ onNavigate }) => {
           borderRadius: '20px', 
           padding: '2.5rem 1.5rem', 
           border: '1px solid #e2e8f0',
-          boxShadow: '0 4px 20px -2px rgba(29, 78, 216, 0.06)',
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '2rem',
-          alignItems: 'center'
+          boxShadow: '0 4px 20px -2px rgba(29, 78, 216, 0.06)'
         }}
-        className="hero-grid"
+        className="hero-grid hero-section"
       >
         <div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.85rem', backgroundColor: '#eff6ff', color: '#1d4ed8', borderRadius: '999px', fontSize: '0.85rem', fontWeight: 700, marginBottom: '1.25rem', border: '1px solid #bfdbfe' }}>
             <Zap size={15} /> #1 Doorstep Washing Machine Service
           </div>
           
-          <h1 style={{ fontSize: '2.4rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, marginBottom: '1rem', letterSpacing: '-0.02em' }}>
+          <h1 className="hero-title" style={{ fontSize: '2.4rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, marginBottom: '1rem', letterSpacing: '-0.02em' }}>
             Washing Machine Repair <span style={{ color: '#1d4ed8' }}>Made Easy</span>
           </h1>
 
@@ -57,11 +55,11 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ onNavigate }) => {
             Book a repair service at your home in just a few steps. Fast turnaround, transparent pricing, and 30-day service warranty.
           </p>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.85rem', marginBottom: '2rem' }}>
             <button 
               onClick={() => onNavigate('book-repair')}
               className="btn btn-primary btn-lg"
-              style={{ minWidth: '200px' }}
+              style={{ minWidth: '180px' }}
             >
               <Wrench size={20} /> Book a Repair
             </button>
@@ -70,8 +68,9 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ onNavigate }) => {
               onClick={() => onNavigate('track-complaint')}
               className="btn btn-secondary btn-lg"
             >
-              <Search size={20} /> Track My Complaint
+              <Search size={20} /> Track Complaint
             </button>
+
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', fontSize: '0.9rem', color: '#64748b', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
@@ -138,17 +137,14 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ onNavigate }) => {
                 className="btn btn-secondary btn-block"
                 style={{ borderRadius: '12px', fontWeight: 700, backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
-                <Phone size={16} style={{ color: '#2563eb' }} /> Call {secondaryPhone}
+                <Phone size={16} style={{ color: '#2563eb' }} /> Alt: {secondaryPhone}
               </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* PWA App Install Banner */}
-      <div id="pwa-install-banner">
-        <PwaInstallPrompt />
-      </div>
+
 
       {/* Quick Action Card Banner */}
       <div 
@@ -167,112 +163,77 @@ export const CustomerHome: React.FC<CustomerHomeProps> = ({ onNavigate }) => {
           boxShadow: '0 10px 25px -5px rgba(29, 78, 216, 0.3)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <div style={{ width: '50px', height: '50px', borderRadius: '12px', backgroundColor: 'rgba(255, 255, 255, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Wrench size={28} />
-          </div>
-          <div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.2rem' }}>
-              🔧 Ready to Book a Repair Service?
-            </h2>
-            <p style={{ fontSize: '0.95rem', opacity: 0.9 }}>
-              No complex forms. Select your machine, choose your problem, and pick a time slot in 2 minutes!
-            </p>
-          </div>
+        <div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+            Ready to Book a Repair Service?
+          </h3>
+          <p style={{ fontSize: '0.95rem', opacity: 0.9 }}>
+            No upfront payments. Pay only after machine repair and testing.
+          </p>
         </div>
 
-        <button className="btn btn-secondary" style={{ backgroundColor: '#ffffff', color: '#1d4ed8', fontWeight: 800, borderRadius: '10px' }}>
-          Book Now <ArrowRight size={18} />
+        <button className="btn" style={{ backgroundColor: '#ffffff', color: '#1d4ed8', fontWeight: 800, fontSize: '0.95rem' }}>
+          Book Service Now →
         </button>
       </div>
 
-      {/* Common Problems Grid */}
+      {/* Common Problems Section */}
       <div>
-        <div style={{ textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 800, color: '#1d4ed8', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
-          Expert Diagnostics
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+            Common Washing Machine Issues We Fix
+          </h2>
+          <p style={{ color: '#64748b', fontSize: '0.95rem' }}>
+            Select your issue to quickly register a complaint
+          </p>
         </div>
-        <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', marginBottom: '1.25rem' }}>
-          Common Washing Machine Issues We Fix
-        </h2>
 
         <div className="grid-3">
-          {problems.map((p, idx) => (
+          {problems.map((prob) => (
             <div 
-              key={idx} 
+              key={prob.name} 
               onClick={() => onNavigate('book-repair')}
-              className="card"
-              style={{ cursor: 'pointer', transition: 'all 0.2s ease-in-out', border: '1px solid #e2e8f0' }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#2563eb')}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#e2e8f0')}
+              className="card card-interactive" 
+              style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Wrench size={18} style={{ color: '#1d4ed8' }} />
-                </div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>{p.name}</h3>
+              <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                {prob.name}
+                <ArrowRight size={16} style={{ color: '#2563eb' }} />
               </div>
-              <p style={{ fontSize: '0.875rem', color: '#64748b' }}>{p.desc}</p>
+              <p style={{ color: '#64748b', fontSize: '0.875rem', lineHeight: '1.4' }}>
+                {prob.desc}
+              </p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Brands We Repair */}
-      <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '2rem', border: '1px solid #e2e8f0' }}>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', marginBottom: '1.25rem', textAlign: 'center' }}>
-          We Service & Repair All Major Brands
+      {/* Brands We Service */}
+      <div className="card" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', textAlign: 'center', padding: '2rem 1.5rem' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#334155', marginBottom: '1rem' }}>
+          We Repair All Major Brands
         </h3>
-
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.75rem' }}>
-          {brands.map(brand => (
-            <div 
-              key={brand} 
+          {brands.map(b => (
+            <span 
+              key={b} 
               style={{ 
-                padding: '0.6rem 1.25rem', 
-                backgroundColor: '#f8fafc', 
+                backgroundColor: '#ffffff', 
                 border: '1px solid #cbd5e1', 
-                borderRadius: '10px', 
-                fontSize: '0.95rem', 
+                padding: '0.5rem 1.25rem', 
+                borderRadius: '999px', 
                 fontWeight: 700, 
-                color: '#334155' 
+                color: '#1e293b', 
+                fontSize: '0.9rem',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
               }}
             >
-              {brand}
-            </div>
+              {b}
+            </span>
           ))}
-          <div style={{ padding: '0.6rem 1.25rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', fontSize: '0.95rem', fontWeight: 700, color: '#1d4ed8' }}>
-            + All Other Brands
-          </div>
         </div>
       </div>
 
-      {/* Why Choose Us */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-        <div className="card" style={{ textAlign: 'center', padding: '1.75rem' }}>
-          <ShieldCheck size={36} style={{ color: '#059669', marginBottom: '0.75rem' }} />
-          <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.4rem' }}>30-Day Warranty</h4>
-          <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Complete peace of mind. Free re-inspection if issue recurs within 30 days.</p>
-        </div>
-
-        <div className="card" style={{ textAlign: 'center', padding: '1.75rem' }}>
-          <ThumbsUp size={36} style={{ color: '#1d4ed8', marginBottom: '0.75rem' }} />
-          <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.4rem' }}>Genuine Spare Parts</h4>
-          <p style={{ fontSize: '0.875rem', color: '#64748b' }}>100% original manufacturer spare parts used for all repairs.</p>
-        </div>
-
-        <div className="card" style={{ textAlign: 'center', padding: '1.75rem' }}>
-          <Clock size={36} style={{ color: '#d97706', marginBottom: '0.75rem' }} />
-          <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.4rem' }}>Flexible Schedule</h4>
-          <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Choose your convenient visit date and time slot at home.</p>
-        </div>
-      </div>
-
-      {/* CSS Layout Helper */}
-      <style>{`
-        @media (max-width: 768px) {
-          .hero-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
     </div>
   );
 };
