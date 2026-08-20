@@ -230,7 +230,20 @@ export const getSettings = (): BusinessSettings => {
       localStorage.setItem(KEYS.SETTINGS, JSON.stringify(INITIAL_SETTINGS));
       return INITIAL_SETTINGS;
     }
-    return JSON.parse(raw);
+    const parsed: BusinessSettings = JSON.parse(raw);
+    let updated = false;
+    if (!parsed.phone || parsed.phone.includes('98765')) {
+      parsed.phone = '+91 9926064529';
+      updated = true;
+    }
+    if (!parsed.secondaryPhone || parsed.secondaryPhone.includes('91234') || parsed.secondaryPhone.includes('98765')) {
+      parsed.secondaryPhone = '+91 9826247802';
+      updated = true;
+    }
+    if (updated) {
+      localStorage.setItem(KEYS.SETTINGS, JSON.stringify(parsed));
+    }
+    return parsed;
   } catch (err) {
     console.error('Error reading settings from localStorage:', err);
     return INITIAL_SETTINGS;
